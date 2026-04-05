@@ -63,14 +63,12 @@ def get_profile(user_id):
 # The functions below should be applicable to all Flask apps.
 ###
 
-# Here we define a function to collect form errors from Flask-WTF
-# which we can later use
 
 def logout_user():
     pass
 
 
-
+# Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
     error_messages = []
     """Collects form errors"""

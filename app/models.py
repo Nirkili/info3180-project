@@ -2,6 +2,7 @@ from . import db
 import enum
 from sqlalchemy.dialects import postgresql
 from datetime import datetime
+from datetime import date
 
 # ENUM CLASSES
 class Gender(str, enum.Enum):
@@ -50,6 +51,7 @@ class User(db.Model): # Base User Class
 
 
 
+
 # PROFILE CLASS
 class Profile(db.Model):
 
@@ -60,7 +62,7 @@ class Profile(db.Model):
   user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
   
   # Other User Details
-  age = db.Column(db.Integer, nullable=False)
+  date_of_birth = db.Column(db.Date, nullable=False)
   gender = db.Column(postgresql.ENUM(Gender, name="gender"), nullable=False)
   bio = db.Column(db.Text)
   
@@ -73,6 +75,12 @@ class Profile(db.Model):
   gender_preference = db.Column(postgresql.ENUM(Gender, name = "gender_preference"), nullable = False)
   wants_children = db.Column(postgresql.ENUM(ChildrenPreference, name = "children_preference"), nullable = False)
   relationship_type_preference = db.Column(postgresql.ENUM(RelationshipPreference, name = "relationship_preference"), nullable = False)
+
+  @property
+  def age(self):
+    today = date.today()
+    dob = self.date_of_birth
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
   
   
   
