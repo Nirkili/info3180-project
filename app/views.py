@@ -20,22 +20,44 @@ def index():
     return redirect(url_for('login'))
 
 
-@app.route('/login', methods = ['POST'])
-def login():
-    pass
+# Auth Routes
 
-
-@app.route('register_user', methods = ['POST'])
+@app.route('/api/v1/auth/register', methods = ['POST'])
 def register():
     pass
 
-@app.route('/register_user/interest', methods = ['POST'])
-def registerInterest():
+@app.route('/api/v1/auth/login', methods = ['POST'])
+def login():
     pass
 
-@app.route('/logout')
+@app.route('/api/v1/auth/interest', methods = ['POST'])
+def interest():
+    pass
+
+@app.route('/api/v1/auth/logout')
 def logout():
     pass
+
+@app.route('/api/v1/auth/status', methods=['GET'])
+def auth_status():
+    pass
+
+
+# Profile Routes
+@app.route('/api/v1/profile', methods=['GET'])
+def get_my_profile():
+    pass
+
+@app.route('/api/v1/profile', methods=['POST'])
+def update_profile():
+    pass
+
+@app.route('/api/v1/profile/<int:user_id>', methods=['GET'])
+def get_profile(user_id):
+    pass
+
+
+# CSRF
 
 ###
 # The functions below should be applicable to all Flask apps.

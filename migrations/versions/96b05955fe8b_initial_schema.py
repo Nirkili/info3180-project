@@ -1,8 +1,8 @@
-"""empty message
+"""Initial Schema
 
-Revision ID: d926a512a177
+Revision ID: 96b05955fe8b
 Revises: 
-Create Date: 2026-04-05 15:06:29.699466
+Create Date: 2026-04-05 16:43:20.669008
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd926a512a177'
+revision = '96b05955fe8b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,6 +30,7 @@ def upgrade():
     sa.Column('user_name', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=100), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('user_ID'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('user_name')
@@ -48,10 +49,15 @@ def upgrade():
     sa.Column('user_ID', sa.Integer(), nullable=False),
     sa.Column('liked_user_ID', sa.Integer(), nullable=False),
     sa.Column('type', postgresql.ENUM('LIKE', 'DISLIKE', 'PASS', name='like_type'), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['liked_user_ID'], ['User.user_ID'], ),
     sa.ForeignKeyConstraint(['user_ID'], ['User.user_ID'], ),
     sa.PrimaryKeyConstraint('like_ID')
     )
+    with op.batch_alter_table('Likes', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_Likes_liked_user_ID'), ['liked_user_ID'], unique=False)
+        batch_op.create_index(batch_op.f('ix_Likes_user_ID'), ['user_ID'], unique=False)
+
     op.create_table('Match',
     sa.Column('user_ID', sa.Integer(), nullable=False),
     sa.Column('match_user_ID', sa.Integer(), nullable=False),
@@ -63,9 +69,10 @@ def upgrade():
     sa.Column('profile_ID', sa.Integer(), nullable=False),
     sa.Column('user_ID', sa.Integer(), nullable=False),
     sa.Column('age', sa.Integer(), nullable=False),
+    sa.Column('gender', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender'), nullable=False),
     sa.Column('bio', sa.Text(), nullable=True),
     sa.Column('location', sa.String(length=100), nullable=False),
-    sa.Column('visiblity_status', postgresql.ENUM('PRIVATE', 'PUBLIC', name='account_status'), nullable=False),
+    sa.Column('visibility_status', postgresql.ENUM('PRIVATE', 'PUBLIC', name='account_status'), nullable=False),
     sa.Column('picture_filename', sa.String(length=100), nullable=False),
     sa.Column('gender_preference', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender_preference'), nullable=False),
     sa.Column('wants_children', postgresql.ENUM('DOES_WANT', 'DOES_NOT', name='children_preference'), nullable=False),
@@ -73,6 +80,9 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_ID'], ['User.user_ID'], ),
     sa.PrimaryKeyConstraint('profile_ID')
     )
+    with op.batch_alter_table('Profile', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_Profile_location'), ['location'], unique=False)
+
     op.create_table('UserInterest',
     sa.Column('user_ID', sa.Integer(), nullable=False),
     sa.Column('interest_ID', sa.Integer(), nullable=False),
@@ -106,8 +116,15 @@ def downgrade():
     op.drop_table('Message')
     op.drop_table('Bookmarks')
     op.drop_table('UserInterest')
+    with op.batch_alter_table('Profile', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_Profile_location'))
+
     op.drop_table('Profile')
     op.drop_table('Match')
+    with op.batch_alter_table('Likes', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_Likes_user_ID'))
+        batch_op.drop_index(batch_op.f('ix_Likes_liked_user_ID'))
+
     op.drop_table('Likes')
     op.drop_table('Chat')
     op.drop_table('User')
