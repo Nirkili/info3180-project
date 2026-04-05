@@ -6,8 +6,9 @@ This file creates your application.
 """
 
 from app import app
-from flask import render_template, request, jsonify, send_file
+from flask import render_template, request, jsonify, send_file, redirect, url_for
 import os
+from .models import User 
 
 
 ###
@@ -16,8 +17,25 @@ import os
 
 @app.route('/')
 def index():
-    return jsonify(message="This is the beginning of our API")
+    return redirect(url_for('login'))
 
+
+@app.route('/login', methods = ['POST'])
+def login():
+    pass
+
+
+@app.route('register_user', methods = ['POST'])
+def register():
+    pass
+
+@app.route('/register_user/interest', methods = ['POST'])
+def registerInterest():
+    pass
+
+@app.route('/logout')
+def logout():
+    pass
 
 ###
 # The functions below should be applicable to all Flask apps.
@@ -25,6 +43,12 @@ def index():
 
 # Here we define a function to collect form errors from Flask-WTF
 # which we can later use
+
+def logout_user():
+    pass
+
+
+
 def form_errors(form):
     error_messages = []
     """Collects form errors"""

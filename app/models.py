@@ -4,24 +4,24 @@ from sqlalchemy.dialects import postgresql
 from datetime import datetime
 
 # ENUM CLASSES
-class GenderPreference(str, enum.ENUM):
+class GenderPreference(str, enum.Enum):
   FEM = "Female"
   MALE = "Male"
   NB = "Non-binary"
   
-class VisibilityStatus(str, enum.ENUM):
+class VisibilityStatus(str, enum.Enum):
   PRIVATE = "Private"
   PUBLIC = "Public"
 
-class RelationshipPreference(str, enum.ENUM):
+class RelationshipPreference(str, enum.Enum):
   CASUAL = "Casual"
   SERIOUS = "Serious"
   
-class ChildrenPreference(str, enum.ENUM):
+class ChildrenPreference(str, enum.Enum):
   DOES_WANT = True
   DOES_NOT = False
 
-class LikeType(str, enum.ENUM):
+class LikeType(str, enum.Enum):
   LIKE = "Like"
   DISLIKE = "Dislike"
   PASS = "Pass"
@@ -56,7 +56,7 @@ class Profile(db.Model):
 
   # Used to identify User
   profile_ID = db.Column(db.Integer, primary_key=True)
-  user_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
+  user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
   
   # Other User Details
   age = db.Column(db.Integer, nullable=False)
@@ -82,15 +82,13 @@ class Interest(db.Model):
   interest_ID = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(100), nullable=False)
 
-
-
 # USER INTEREST CLASS
 class UserInterest(db.Model):
   
   __tablename__ = 'UserInterest'
   
   user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, primary_key=True)
-  interest_ID = db.Column(db.Integer, db.ForeignKey('Interest.interest_ID', nullable=False, primary_key=True))
+  interest_ID = db.Column(db.Integer, db.ForeignKey('Interest.interest_ID'), nullable=False, primary_key=True)
   
 
 
@@ -100,8 +98,8 @@ class Likes(db.Model):
   __tablename__ = 'Likes'
   
   like_ID = db.Column(db.Integer, primary_key=True)
-  user_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
-  liked_user_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
+  user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
+  liked_user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
 
   type = db.Column(postgresql.ENUM(LikeType, name="like_type"), nullable=False)
 
@@ -112,8 +110,8 @@ class Match(db.Model):
 
   __tablename__ = 'Match'
   
-  user_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
-  match_user_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
+  user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, primary_key=True)
+  match_user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, primary_key = True)
 
 
 
@@ -123,8 +121,8 @@ class Bookmarks(db.Model):
   __tablename__ = "Bookmarks"
   
   user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), primary_key=True)
-  Profile_ID = db.Column(db.Integer, db.ForeignKey('Profile.profile_ID', primary_key=True))
-  date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable = False)
+  Profile_ID = db.Column(db.Integer, db.ForeignKey('Profile.profile_ID'), primary_key=True)
+  date_created = db.Column(db.DateTime, default=datetime.now(), nullable = False)
 
 
 
@@ -133,10 +131,10 @@ class Chat(db.Model):
 
   __tablename__ = "Chat"
   chat_ID = db.Column(db.Integer, primary_key = True)
-  user1_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
-  user2_ID = db.Column(db.Integer, db.ForeignKey(User.user_ID), nullable=False)
+  user1_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
+  user2_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False)
 
-  date_created = db.Column(db.DateTime, default=datetime.utcnow)
+  date_created = db.Column(db.DateTime, default=datetime.now())
 
   messages = db.relationship('Message', backref='chat', lazy=True)
 
@@ -153,5 +151,5 @@ class Message (db.Model):
   sender_ID = db.Column(db.Integer, db.ForeignKey("User.user_ID"), nullable = False)
 
   content = db.Column(db.Text, nullable = True)
-  timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+  timestamp = db.Column(db.DateTime, default=datetime.now())
 
