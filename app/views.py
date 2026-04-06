@@ -133,35 +133,43 @@ def login():
     return jsonify({'errors': form_errors(form)}), 400
         
 
-
-
-
-@app.route('/api/v1/auth/interest', methods = ['POST'])
-def interest():
-    pass
-
-@app.route('/api/v1/auth/logout')
+@app.route('/api/v1/auth/logout', methods=['POST'])
+@login_required
 def logout():
-    pass
+    logout_user()
+    return jsonify({'message': 'Logged out successfully'}), 200
 
+
+# This function is for Vue. 
+# When a user refreshes a page Vue's memory is wiped, so it needs to check flask session cookies
 @app.route('/api/v1/auth/status', methods=['GET'])
 def auth_status():
-    pass
+    if current_user.is_authenticated:
+        return jsonify({'logged_in': True, 'user_id': current_user.user_ID}), 200
+    return jsonify({'logged_in': False}), 200
+
 
 
 # Profile Routes
 @app.route('/api/v1/profile', methods=['GET'])
+@login_required
 def get_my_profile():
     pass
 
 @app.route('/api/v1/profile', methods=['POST'])
+@login_required
 def update_profile():
     pass
 
 @app.route('/api/v1/profile/<int:user_id>', methods=['GET'])
+@login_required
 def get_profile(user_id):
     pass
 
+@app.route('/api/v1/profile/interest', methods = ['POST'])
+@login_required
+def interest():
+    pass
 
 # CSRF
 @app.route('/api/v1/csrf-token', methods=['GET'])
