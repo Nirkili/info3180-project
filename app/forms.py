@@ -65,7 +65,24 @@ class LoginForm(FlaskForm):
 
 class ProfileForm(FlaskForm): # Used when a user wants to edit their profile information
     bio      = TextAreaField('About Me')
-    location = StringField('Location')
+
+    location = SelectField('Location', choices=[
+    ('', 'Select Parish'),
+    ('Kingston',        'Kingston'),
+    ('St. Andrew',      'St. Andrew'),
+    ('St. Thomas',      'St. Thomas'),
+    ('Portland',        'Portland'),
+    ('St. Mary',        'St. Mary'),
+    ('St. Ann',         'St. Ann'),
+    ('Trelawny',        'Trelawny'),
+    ('St. James',       'St. James'),
+    ('Hanover',         'Hanover'),
+    ('Westmoreland',    'Westmoreland'),
+    ('St. Elizabeth',   'St. Elizabeth'),
+    ('Manchester',      'Manchester'),
+    ('Clarendon',       'Clarendon'),
+    ('St. Catherine',   'St. Catherine'),
+  ], validators=[InputRequired()])
 
     gender = SelectField('Gender', choices=[
     ('', 'Select gender'),
@@ -100,6 +117,5 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
 
     picture = FileField('Profile Picture', validators=[ FileAllowed(['jpg', 'jpeg', 'png'], 'Images only')])
 
-    interests = StringField('Interests')
 
 

@@ -55,7 +55,7 @@ def register():
             ]}), 409
 
         # Ensure that there are no duplicate emails
-        if User.query.filter_by(user_name = username).first():
+        if User.query.filter_by(user_name = username).first(): #fix
             return jsonify({'errors': [
                 {'field': 'Email',
                  'message': 'Email already registered'}
@@ -93,7 +93,7 @@ def register():
         db.session.add(new_profile)
         db.session.commit()
 
-        login_user(new_user)
+        login_user(new_user) # Login the new user after successful registration
 
         return jsonify({
             'message': 'Registration successful',
@@ -151,21 +151,99 @@ def auth_status():
 
 
 # Profile Routes
+
+# Get the current user's profile
 @app.route('/api/v1/profile', methods=['GET'])
 @login_required
 def get_my_profile():
-    pass
+    # Query the profile table
+    profile = Profile.query.filter_by(user_ID = current_user.user_ID).first()
 
-@app.route('/api/v1/profile', methods=['POST'])
+    if profile: #If the profile exists, return all information
+        return jsonify({
+        'profile_ID':                    profile.profile_ID, #Change
+        'user_ID':                       profile.user_ID,
+        'date_of_birth':                 profile.date_of_birth.isoformat(),
+        'gender':                        profile.gender,
+        'bio':                           profile.bio,
+        'location':                      profile.location,
+        'visibility_status':             profile.visibility_status,
+        'picture':                       profile.picture_filename,
+        'gender_preference':             profile.gender_preference,
+        'wants_children':                profile.wants_children,
+        'relationship_type_preference':  profile.relationship_type_preference,
+        'age':                           profile.age
+    }), 200
+
+    return jsonify({'error': 'Profile not found'}), 404
+
+@app.route('/api/v1/profile', methods=['PUT'])
 @login_required
 def update_profile():
-    pass
+    form = ProfileForm()
 
-@app.route('/api/v1/profile/<int:user_id>', methods=['GET'])
+    if form.validate_on_submit():
+        # Get current profile
+        profile = Profile.query.filter_by(user_ID = current_user.user_ID).first()
+
+        if profile:
+            # Update profile info
+            profile.bio = form.bio.data
+            profile.location = form.location.data
+            profile.gender = form.gender.data
+            profile.gender_preference = form.gender_preference.data
+            profile.wants_children = form.wants_children.data
+            profile.visibility_status = form.visibility_status.data
+            profile.relationship_type_preference = form.relationship_type_preference.data
+            
+            # Profile picture
+            picture = form.picture.data
+
+            if picture: # If a file has been added
+                filename = secure_filename(picture.filename)
+                upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                picture.save(upload_path)
+                profile.picture_filename = filename
+            
+            db.session.commit()
+            return jsonify({
+                'message': 'Profile Update Sucessful'
+            }), 200
+        
+        else:
+            return jsonify({'error': 'Profile not found'}), 404
+
+    return jsonify({'errors': form_errors(form)}), 400
+
+
+
+
+@app.route('/api/v1/profile/<int:profile_id>', methods=['GET'])
 @login_required
-def get_profile(user_id):
-    pass
+def get_profile(profile_id):
 
+    # Query the profile
+    profile = Profile.query.filter_by(profile_ID = profile_id).first()
+
+    if profile:
+        return jsonify({
+        'profile_ID':                    profile.profile_ID, #fix
+        'user_ID':                       profile.user_ID,
+        'date_of_birth':                 profile.date_of_birth.isoformat(),
+        'gender':                        profile.gender,
+        'bio':                           profile.bio,
+        'location':                      profile.location,
+        'visibility_status':             profile.visibility_status,
+        'picture':                       profile.picture_filename,
+        'gender_preference':             profile.gender_preference,
+        'wants_children':                profile.wants_children,
+        'relationship_type_preference':  profile.relationship_type_preference,
+        'age':                           profile.age
+    }), 200
+
+    return jsonify({'error': 'Profile not found'}), 404
+
+# Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
 def interest():
