@@ -106,7 +106,35 @@ def register():
 
 @app.route('/api/v1/auth/login', methods = ['POST'])
 def login():
-    pass
+    form = LoginForm()
+
+    if form.validate_on_submit():
+        # Get form data
+        email = form.email.data
+        password = form.password.data
+
+        # Query the database
+        user = User.query.filter_by(email = email).first()
+
+        # Check if the user exists
+        if user:
+            if bcrypt.check_password_hash(user.password, password):
+                login_user(user)
+                
+                return jsonify({
+                    'message': 'Login Successful',
+                    'user_id': user.user_ID
+                }), 200
+            
+            return jsonify({'errors': [
+            {'field': 'Credentials', 'message': 'Invalid email or password'}
+        ]}), 401
+
+    return jsonify({'errors': form_errors(form)}), 400
+        
+
+
+
 
 @app.route('/api/v1/auth/interest', methods = ['POST'])
 def interest():
