@@ -1,8 +1,9 @@
-from . import db
+from . import db, login_manager
 import enum
 from sqlalchemy.dialects import postgresql
 from datetime import datetime
 from datetime import date
+from flask_login import UserMixin
 
 # ENUM CLASSES
 class Gender(str, enum.Enum):
@@ -30,7 +31,12 @@ class LikeType(str, enum.Enum):
 
 
 # BASE CLASSES
-class User(db.Model): # Base User Class
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+class User(db.Model, UserMixin): # Base User Class
 
   __tablename__ = 'User'
   
@@ -48,6 +54,9 @@ class User(db.Model): # Base User Class
 
 
   profile = db.relationship('Profile', backref='user', uselist=False)
+
+  def get_id(self):
+    return str(self.user_ID)
 
 
 

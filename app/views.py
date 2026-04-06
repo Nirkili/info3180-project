@@ -5,10 +5,14 @@ Werkzeug Documentation:  https://werkzeug.palletsprojects.com/
 This file creates your application.
 """
 
-from app import app
+from . import app, db, bcrypt
 from flask import render_template, request, jsonify, send_file, redirect, url_for
+from flask_login import login_user, logout_user, current_user, login_required
+from werkzeug.utils import secure_filename
+from flask_wtf.csrf import generate_csrf
+from .models import *
+from .forms import *
 import os
-from .models import User 
 
 
 ###
@@ -21,10 +25,84 @@ def index():
 
 
 # Auth Routes
-
 @app.route('/api/v1/auth/register', methods = ['POST'])
 def register():
-    pass
+    form = RegisterForm()
+
+    if form.validate_on_submit():
+
+        # Get form Data
+        first_name = form.first_name.data
+        last_name = form.last_name.data
+        username = form.username.data
+        email = form.email.data
+        dob = form.date_of_birth.data
+        password = form.password.data
+        gender = form.gender.data
+        gender_preference = form.gender_preference.data
+        relationship_preference = form.relationship_preference.data
+        wants_children = form.wants_children.data
+
+
+
+
+
+        # Ensure that there are no duplicate usernames
+        if User.query.filter_by(user_name = username).first():
+            return jsonify({'errors': [
+                {'field': 'Username',
+                 'message': 'Username not available'}
+            ]}), 409
+
+        # Ensure that there are no duplicate emails
+        if User.query.filter_by(user_name = username).first():
+            return jsonify({'errors': [
+                {'field': 'Email',
+                 'message': 'Email already registered'}
+            ]}), 409
+        
+        # Hash password
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        # Add User to the DB
+        new_user = User(
+            first_name = first_name,
+            last_name = last_name,
+            user_name = username,
+            email = email,
+            password = password_hash
+        )
+
+        db.session.add(new_user)
+        db.session.flush() # Get new user ID
+
+        # Create User profile
+        new_profile = Profile(
+            user_ID = new_user.user_ID,
+            date_of_birth = dob,
+            gender = gender,
+            gender_preference = gender_preference,
+            relationship_type_preference = relationship_preference,
+            wants_children = wants_children,
+            location = '',
+            visibility_status = 'Public',
+            picture_filename = ''
+
+        )
+
+        db.session.add(new_profile)
+        db.session.commit()
+
+        login_user(new_user)
+
+        return jsonify({
+            'message': 'Registration successful',
+            'user_id': new_user.user_ID
+        }), 201
+
+    return jsonify({'errors': form_errors(form)}), 400
+
+
 
 @app.route('/api/v1/auth/login', methods = ['POST'])
 def login():
@@ -58,6 +136,9 @@ def get_profile(user_id):
 
 
 # CSRF
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+    return jsonify({'csrf_token': generate_csrf()})
 
 ###
 # The functions below should be applicable to all Flask apps.
