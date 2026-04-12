@@ -18,16 +18,16 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav me-auto">
             <li class="nav-item mx-3">
-              <RouterLink to="/" class="nav-link active">About Us</RouterLink>
+              <RouterLink to="/about" class="nav-link active">About Us</RouterLink>
             </li>
             <li class="nav-item mx-3">
-              <RouterLink class="nav-link" to="">Community Guidelines</RouterLink>
+              <RouterLink class="nav-link" to="/community_guidelines">Community Guidelines</RouterLink>
             </li>
             <li class="nav-item mx-3">
-              <RouterLink class="nav-link" to="">My Profile</RouterLink>
+              <RouterLink class="nav-link" to="/my_profile">My Profile</RouterLink>
             </li>
              <li class="nav-item mx-3">
-              <RouterLink class="nav-link" to="">Search Profiles</RouterLink>
+              <RouterLink class="nav-link" to="/search_profiles">Search Profiles</RouterLink>
             </li>
           </ul>
 

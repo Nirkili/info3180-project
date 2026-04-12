@@ -1,15 +1,19 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
+
+const route = useRoute()
+
+const hideSidebarOn = ['login', 'register_user', 'about', 'community_guidelines']
 </script>
 
 <template>
   <AppHeader />
 
   <div class="layout">
-    <AppSidebar />
+    <AppSidebar v-if="!hideSidebarOn.includes(route.name)"/>
 
     <main class="main-content">
     <RouterView />
