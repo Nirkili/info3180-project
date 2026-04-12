@@ -50,6 +50,24 @@ const router = createRouter({
       path: '/search_profiles',
       name: 'search_profiles',
       component: () => import('../views/SearchProfiles.vue')
+    },
+
+    {
+      path: '/matches',
+      name: 'matches',
+      component: () => import('../views/MatchesView.vue')
+    },
+
+    {
+      path: '/bookmarks',
+      name: 'bookmarks',
+      component: () => import('../views/BookmarksView.vue')
+    },
+
+    {
+      path: '/messages',
+      name: 'messages',
+      component: () => import('../views/MessagesView.vue')
     }
 
   ]

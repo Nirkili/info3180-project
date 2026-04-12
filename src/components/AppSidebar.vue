@@ -16,16 +16,16 @@
       <hr>
       <ul>
         <li>
-          <RouterLink to="" class=""><i class="fa-solid fa-house"></i>Home</RouterLink>
+          <RouterLink to="/" class=""><i class="fa-solid fa-house"></i>Home</RouterLink>
         </li>
         <li>
-          <RouterLink to="" class=""><i class="fa-solid fa-heart"></i>Matches</RouterLink>
+          <RouterLink to="/matches" class=""><i class="fa-solid fa-heart"></i>Matches</RouterLink>
         </li>
         <li>
-          <RouterLink to="" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
+          <RouterLink to="/bookmarks" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
         </li>
         <li>
-          <RouterLink to="" class=""><i class="fa-solid fa-comment"></i>Messages</RouterLink>
+          <RouterLink to="/messages"><i class="fa-solid fa-comment"></i>Messages</RouterLink>
         </li>
       </ul>
 
@@ -83,19 +83,29 @@
 
     .links li{
       margin-bottom: 35px;
-      text-align: center;
-      padding: 12px;
-      border-radius: 12px;
       position: relative;
     }
 
-    .links li:hover{
+    .links li a{
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      justify-content: center;
+      color: black;
+      transition: all 0.25s ease;
+
+    }
+
+    .links li a:hover{
       background-color:  rgb(238, 219, 243); 
       padding: 15px;
       cursor: pointer;
     }
 
-    .links li:hover::before {
+    .links li a:hover::before {
       content: "";
       position: absolute;
       left: 0;
