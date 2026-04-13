@@ -119,3 +119,39 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
 
 
 
+# Just in case :(
+class SearchForm(FlaskForm):
+  name_bio = StringField('Name/Bio')
+
+  ages = SelectField('Age', choices=[
+    ('', 'All Ages'),
+    ('18-24', '18-24'),
+    ('25-30', '25-30'),
+    ('30-40', '30-40'),
+    ('>40', '>40'),
+  ])
+
+  location = SelectField('Location', choices=[
+    ('', 'Select Parish'),
+    ('Kingston',        'Kingston'),
+    ('St. Andrew',      'St. Andrew'),
+    ('St. Thomas',      'St. Thomas'),
+    ('Portland',        'Portland'),
+    ('St. Mary',        'St. Mary'),
+    ('St. Ann',         'St. Ann'),
+    ('Trelawny',        'Trelawny'),
+    ('St. James',       'St. James'),
+    ('Hanover',         'Hanover'),
+    ('Westmoreland',    'Westmoreland'),
+    ('St. Elizabeth',   'St. Elizabeth'),
+    ('Manchester',      'Manchester'),
+    ('Clarendon',       'Clarendon'),
+    ('St. Catherine',   'St. Catherine'),
+  ])
+
+  gender = SelectField('Gender', choices=[
+    ('', 'Select gender'),
+    ('Female',     'Female'),
+    ('Male',       'Male'),
+    ('Non-binary', 'Non-binary')
+  ])

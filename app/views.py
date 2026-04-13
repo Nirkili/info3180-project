@@ -6,7 +6,7 @@ This file creates your application.
 """
 
 from . import app, db, bcrypt
-from flask import render_template, request, jsonify, send_file, redirect, url_for
+from flask import render_template, request, jsonify, send_file, redirect, url_for, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import generate_csrf
@@ -43,10 +43,6 @@ def register():
         relationship_preference = form.relationship_preference.data
         wants_children = form.wants_children.data
 
-
-
-
-
         # Ensure that there are no duplicate usernames
         if User.query.filter_by(user_name = username).first():
             return jsonify({'errors': [
@@ -55,7 +51,7 @@ def register():
             ]}), 409
 
         # Ensure that there are no duplicate emails
-        if User.query.filter_by(user_name = username).first(): #fix
+        if User.query.filter_by(email = email).first(): #fix
             return jsonify({'errors': [
                 {'field': 'Email',
                  'message': 'Email already registered'}
@@ -138,7 +134,8 @@ def login():
 def logout():
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
-
+    
+    
 
 # This function is for Vue. 
 # When a user refreshes a page Vue's memory is wiped, so it needs to check flask session cookies
@@ -153,6 +150,22 @@ def auth_status():
 # Profile Routes
 
 # Get the current user's profile
+def get_uploaded_images():
+    lst = []
+    rootdir = os.getcwd() 
+    for subdir, dirs, files in os.walk(rootdir + '/uploads'): 
+        for file in files:
+            if file != ".gitkeep":
+                lst.append(file)
+            
+    return lst
+
+@app.route('/api/v1/picture/<filename>')
+def get_image(filename):
+    uploads = os.path.join(os.getcwd(),app.config['UPLOAD_FOLDER'])
+    if(os.path.exists(os.path.join(uploads, filename))):
+        return send_from_directory(uploads, filename)
+    
 @app.route('/api/v1/profile', methods=['GET'])
 @login_required
 def get_my_profile():
@@ -223,12 +236,15 @@ def update_profile():
 def get_profile(profile_id):
 
     # Query the profile
-    profile = Profile.query.filter_by(profile_ID = profile_id).first()
+    res = db.session.query(Profile, User).join(User, Profile.user_ID == User.user_ID).filter(Profile.profile_ID == profile_id).first()
 
-    if profile:
+    if res:
+        profile, user = res
         return jsonify({
         'profile_ID':                    profile.profile_ID, #fix
         'user_ID':                       profile.user_ID,
+        'first name': user.first_name,
+        'last name': user.last_name,
         'date_of_birth':                 profile.date_of_birth.isoformat(),
         'gender':                        profile.gender,
         'bio':                           profile.bio,
@@ -242,6 +258,50 @@ def get_profile(profile_id):
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
+
+
+
+
+# USER ROUTES
+
+@app.route('/api/v1/user/search', methods=['GET'])
+@login_required
+def searchUsers():
+    searchTerm = request.args.get('searchTerm','').strip()
+    filt1 = request.args.get('filter1')
+    filt2 = request.args.get('filter2')
+    filt3 = request.args.get('filter3')
+    
+    current = db.session.query(Profile, User).join(User, Profile.user_ID == User.user_ID)
+    
+    if searchTerm:
+        current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
+        
+    if filt1 != "none":
+        if filt1 != ">41":
+            rangeLst = filt1.split("-")
+            
+            current = current.filter(Profile.age.between(int(rangeLst[0]), int(rangeLst[1])))
+        else:
+            current = current.filter(Profile.age > 41)
+            
+    if filt2 != "none":
+        current = current.filter(Profile.gender == filt2)
+        
+    if filt3 != "none":
+        current = current.filter(Profile.location == filt3)
+        
+    res = current.all()
+    
+    return jsonify([{
+        "username": use.user_name,
+        "f_name": use.f_Name,
+        "l_name": use.l_Name,
+        "gender": prof.gender,
+        "age": prof.age,
+        "location": prof.location,
+        "photo": f"/api/v1/picture/{prof.picture_filename}"
+        } for (prof, use) in res]), 200
 
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
@@ -257,11 +317,6 @@ def get_csrf():
 ###
 # The functions below should be applicable to all Flask apps.
 ###
-
-
-def logout_user():
-    pass
-
 
 # Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
