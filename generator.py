@@ -72,7 +72,6 @@ def genInterests():
             db.session.commit()
             
         except Exception as e:
-                # If ANY error occurs (Unique constraint, Connection issue, etc.)
                 db.session.rollback()
                 print(f"Transaction failed. Error: {e}")
     
