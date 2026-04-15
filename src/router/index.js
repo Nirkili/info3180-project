@@ -9,43 +9,69 @@ const router = createRouter({
       name: 'home',
       component: HomeView
     },
+
     {
       path: '/about',
       name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue')
+    },
+
+     {
+      path: '/community_guidelines',
+      name: 'community_guidelines',
+      component: () => import('../views/GuidelinesView.vue')
     },
 
     {
       path: '/login',
       name: 'login',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/Login.vue')
     },
 
     {
       path: '/register_user',
       name: 'register_user',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/Register.vue')
     },
 
     {
       path: '/register_interest',
       name: 'register_interest',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/Register_Interest.vue')
-    }
+    },
+
+    {
+      path: '/my_profile',
+      name: 'my_profile',
+      component: () => import('../views/Profile.vue')
+    },
+
+    {
+      path: '/search_profiles',
+      name: 'search_profiles',
+      component: () => import('../views/SearchProfiles.vue')
+    },
+
+    {
+      path: '/matches',
+      name: 'matches',
+      component: () => import('../views/MatchesView.vue')
+    },
+
+    {
+      path: '/bookmarks',
+      name: 'bookmarks',
+      component: () => import('../views/BookmarksView.vue')
+    },
+
+    {
+      path: '/messages',
+      name: 'messages',
+      component: () => import('../views/MessagesView.vue')
+    },
 
   ]
 })
 
 export default router
+    

@@ -13,7 +13,7 @@ from flask_wtf.csrf import generate_csrf
 from .models import *
 from .forms import *
 import os
-
+from datetime import date, timedelta
 
 ###
 # Routing for your application.
@@ -160,7 +160,7 @@ def get_uploaded_images():
             
     return lst
 
-@app.route('/api/v1/picture/<filename>')
+@app.route('/api/v1/images/<filename>')
 def get_image(filename):
     uploads = os.path.join(os.getcwd(),app.config['UPLOAD_FOLDER'])
     if(os.path.exists(os.path.join(uploads, filename))):
@@ -259,31 +259,32 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
-
-
-
 # USER ROUTES
 
 @app.route('/api/v1/user/search', methods=['GET'])
-@login_required
+# @login_required
 def searchUsers():
     searchTerm = request.args.get('searchTerm','').strip()
     filt1 = request.args.get('filter1')
     filt2 = request.args.get('filter2')
     filt3 = request.args.get('filter3')
     
-    current = db.session.query(Profile, User).join(User, Profile.user_ID == User.user_ID)
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
         
     if filt1 != "none":
-        if filt1 != ">41":
-            rangeLst = filt1.split("-")
-            
-            current = current.filter(Profile.age.between(int(rangeLst[0]), int(rangeLst[1])))
+        today = date.today()
+        if filt1 == ">41":
+            max_dob = today - timedelta(days=42 * 365.25)
+            current = current.filter(Profile.date_of_birth <= max_dob)
         else:
-            current = current.filter(Profile.age > 41)
+            start, end = map(int, filt1.split("-"))
+            latest_dob = today - timedelta(days=start * 365.25)
+            earliest_dob = today - timedelta(days=(end + 1) * 365.25)
+        
+            current = current.filter(Profile.date_of_birth.between(earliest_dob, latest_dob))
             
     if filt2 != "none":
         current = current.filter(Profile.gender == filt2)
@@ -295,14 +296,18 @@ def searchUsers():
     
     return jsonify([{
         "username": use.user_name,
-        "f_name": use.f_Name,
-        "l_name": use.l_Name,
+        "f_name": use.first_name,
+        "l_name": use.last_name,
         "gender": prof.gender,
         "age": prof.age,
         "location": prof.location,
-        "photo": f"/api/v1/picture/{prof.picture_filename}"
-        } for (prof, use) in res]), 200
+        "photo": f"/api/v1/images/{prof.picture_filename}"
+        } for (use, prof) in res]), 200
 
+@app.route('/api/v1/user/bookmarks', methods=['GET'])
+@login_required
+def getBookmarkedUsers():
+    pass
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
