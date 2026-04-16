@@ -258,11 +258,6 @@ def get_csrf():
 # The functions below should be applicable to all Flask apps.
 ###
 
-
-def logout_user():
-    pass
-
-
 # Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
     error_messages = []
