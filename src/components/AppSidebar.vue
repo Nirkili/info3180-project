@@ -16,7 +16,7 @@
       <hr>
       <ul>
         <li>
-          <RouterLink to="/" class=""><i class="fa-solid fa-house"></i>Home</RouterLink>
+          <RouterLink to="/home" class=""><i class="fa-solid fa-house"></i>Home</RouterLink>
         </li>
         <li>
           <RouterLink to="/matches" class=""><i class="fa-solid fa-heart"></i>Matches</RouterLink>

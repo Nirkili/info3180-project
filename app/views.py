@@ -19,11 +19,6 @@ import os
 # Routing for your application.
 ###
 
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
-
-
 # Auth Routes
 @app.route('/api/v1/auth/register', methods = ['POST'])
 def register():
@@ -55,7 +50,7 @@ def register():
             ]}), 409
 
         # Ensure that there are no duplicate emails
-        if User.query.filter_by(user_name = username).first(): #fix
+        if User.query.filter_by(email = email).first(): #fix
             return jsonify({'errors': [
                 {'field': 'Email',
                  'message': 'Email already registered'}
@@ -243,16 +238,84 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
+@app.route('/api/v1/user/search', methods=['GET'])
+@login_required
+def search_users():
+    searchTerm = request.args.get('searchTerm','').strip()
+    filt1 = request.args.get('filter1')
+    filt2 = request.args.get('filter2')
+    filt3 = request.args.get('filter3')
+    
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
+    
+    if searchTerm:
+        current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
+        
+    if filt1 != "none":
+        today = date.today()
+        if filt1 == ">41":
+            max_dob = today - timedelta(days=42 * 365.25)
+            current = current.filter(Profile.date_of_birth <= max_dob)
+        else:
+            start, end = map(int, filt1.split("-"))
+            latest_dob = today - timedelta(days=start * 365.25)
+            earliest_dob = today - timedelta(days=(end + 1) * 365.25)
+        
+            current = current.filter(Profile.date_of_birth.between(earliest_dob, latest_dob))
+            
+    if filt2 != "none":
+        current = current.filter(Profile.gender == filt2)
+        
+    if filt3 != "none":
+        current = current.filter(Profile.location == filt3)
+        
+    res = current.all()
+    
+    return jsonify([{
+        "username": use.user_name,
+        "f_name": use.first_name,
+        "l_name": use.last_name,
+        "gender": prof.gender,
+        "age": prof.age,
+        "location": prof.location,
+        "photo": f"/api/v1/images/{prof.picture_filename}"
+        } for (use, prof) in res]), 200
+
+@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
+@login_required
+def get_bookmarked_users(user_ID):
+    bookmarks = db.session.execute(db.select(Bookmarks)).where(Bookmarks.user_ID == user_ID).scalars().all()
+
+    return jsonify(bookmarks = bookmarks), 200
+
+@app.route('/api/v1/<int:user_ID>/matches', methods=['GET'])
+@login_required
+def get_matched_users(user_ID):
+    bookmarks = db.session.execute(
+        db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
+
+    return jsonify(bookmarks = bookmarks), 200
+
+
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
 def interest():
     pass
 
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 # CSRF
 @app.route('/api/v1/csrf-token', methods=['GET'])
 def get_csrf():
     return jsonify({'csrf_token': generate_csrf()})
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({'errors': [{'message': 'Unauthorized'}]}), 401
 
 ###
 # The functions below should be applicable to all Flask apps.

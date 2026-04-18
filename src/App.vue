@@ -1,31 +1,36 @@
 <script setup>
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
+import { ref } from 'vue';
 
 const route = useRoute()
+const router = useRouter()
+const isRouterReady = ref(false)
+router.isReady().then(() => isRouterReady.value = true)
 
-const hideSidebarOn = ['login', 'register_user', 'about', 'community_guidelines']
+const hideSidebarOn = ['login', 'register_user', 'register_interest', 'about', 'community_guidelines']
 </script>
 
 <template>
-  <AppHeader />
+  <div v-if="isRouterReady">
+    <AppHeader />
 
   <div class="layout">
     <AppSidebar v-if="!hideSidebarOn.includes(route.name)"/>
 
-    <main class="main-content">
+    <main :class="['main-content', { 'noBackground': $route.meta.noBackground }]">
     <RouterView />
   </main>
 
+  </div>
   </div>
 </template>
 
 <style>
 body{
-  /*background-color: rgb(242, 239, 243);*/
-  background-image: linear-gradient(to bottom right, rgb(0, 0, 0), rgb(85, 13, 103));
+  background-image: radial-gradient(circle at bottom right, #E95DA1 1%,#4a154b 40%, #1a061c 65%, #0d0d0d 100%);
   margin: 0;
   font-family: 'Inter', sans-serif;
 }
@@ -68,4 +73,7 @@ body{
   display: none;
 }
 
+.noBackground{
+  background-color: transparent !important;
+}
 </style>
