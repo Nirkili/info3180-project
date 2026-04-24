@@ -24,7 +24,6 @@ const hideSidebarOn = ['login', 'register_user', 'about', 'community_guidelines'
 
 <style>
 body{
-  /*background-color: rgb(242, 239, 243);*/
   background-image: radial-gradient(circle at bottom right, #E95DA1 1%,#4a154b 40%, #1a061c 65%, #0d0d0d 100%);
   margin: 0;
   font-family: 'Inter', sans-serif;

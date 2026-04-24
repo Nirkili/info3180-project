@@ -268,6 +268,7 @@ def searchUsers():
     filt1 = request.args.get('filter1')
     filt2 = request.args.get('filter2')
     filt3 = request.args.get('filter3')
+    filt4 = request.args.get('filter4')
     
     current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
@@ -292,6 +293,9 @@ def searchUsers():
     if filt3 != "none":
         current = current.filter(Profile.location == filt3)
         
+    if filt4 != "none":
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
+        
     res = current.all()
     
     return jsonify([{
@@ -307,7 +311,23 @@ def searchUsers():
 @app.route('/api/v1/user/bookmarks', methods=['GET'])
 @login_required
 def getBookmarkedUsers():
-    pass
+    bookmarks = db.session.execute(db.select(Profile)
+                                   .join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID)
+                                   .join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID)).scalars().all()
+
+    return jsonify(bookmarks = bookmarks), 200
+
+@app.route('/api/v1/user/bookmarks', methods=['DELETE'])
+@login_required
+def deleteBookmarkedUser(profile_ID):
+
+    db.session.execute(db.delete(Bookmarks).where(Bookmarks.Profile_ID == profile_ID))
+    
+    db.session.commit()
+        
+
+    return jsonify(bookmarks), 200
+
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required

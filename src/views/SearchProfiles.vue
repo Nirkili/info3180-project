@@ -38,7 +38,25 @@
                         <option value = "St. Mary">St. Mary</option>
                         <option value = "St. Ann">St. Ann</option>
                         <option value = "St. James">St. James</option>
-                        
+                    </select>
+
+                    <select v-model="filter4" name="filter4" class="filtGrp">
+                        <option value="none" disabled selected hidden>Interests</option>
+                        <option value="Coding">Coding</option>
+                        <option value="Investing">Investing</option>
+                        <option value="Entrepreneurship">Entrepreneurship</option>
+                        <option value="Fitness">Fitness</option>
+                        <option value="Meditation">Meditation</option>
+                        <option value="Reading">Reading</option>
+                        <option value="Learning">Learning</option>
+                        <option value="Writing">Writing</option>
+                        <option value="Photography">Photography</option>
+                        <option value="Tech">Tech</option>
+                        <option value="Science">Science</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Cooking">Cooking</option>
+                        <option value="Music">Music</option>
+                        <option value="Social Media">Social Media</option>
                     </select>
                 </div>
             </div>
@@ -76,6 +94,7 @@
     const filter1 = ref("none");
     const filter2 = ref("none");
     const filter3 = ref("none");
+    const filter4 = ref("none");
     const users = ref([]);
 
     function searchUsers(){
@@ -83,7 +102,8 @@
             searchTerm: searchTerm.value,
             filter1: filter1.value,
             filter2: filter2.value,
-            filter3: filter3.value
+            filter3: filter3.value,
+            filter4: filter4.value
         });
         fetch(`/api/v1/user/search?${params}`,{
             method: 'GET'
@@ -102,6 +122,7 @@
         filter1.value = "none"
         filter2.value = "none"
         filter3.value = "none"
+        filter4.value = "none"
     }
 
     onMounted(() => {
