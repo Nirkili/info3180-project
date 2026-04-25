@@ -63,13 +63,15 @@ function login(){
 
     else{
       authStore.setLoggedIn(data.user_id)
+      localStorage.setItem("first_name", data.first_name)
+      localStorage.setItem("last_name", data.last_name)
       successMessage.value = data.message;
       router.push('/home')
     }
   })
 
   .catch(function(error){
-    errorMessages.value = [error.message]
+    errorMessages.value = [{field: 'error', message: error.message}]
   })
 
 
@@ -88,6 +90,11 @@ function login(){
         <form @submit.prevent="login" id="login-form">
             <input type="text" required v-model="email" placeholder="  Email">
             <input type="password" required v-model="password" placeholder="  Password">
+
+             <div v-if="errorMessages.length > 0" class="error-messages">
+                  <p>Invalid email or password</p>
+              </div>
+
             <button type="submit">Login</button>
 
             <p>Don't have an account? <router-link :to="{ name: 'register_user' }">Register here!</router-link></p>
@@ -115,6 +122,9 @@ h1 {
 .container {
   display: flex;
   width: 100%;
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
 }
 
 
@@ -142,10 +152,29 @@ button {
     border-radius: 20px;
     background-color: #9a60ab;
     color: white;
+    border: none;
+    width: 90px;
+    height: 40px;
+}
+
+button:hover{
+  background-color: #8398d1;
+  cursor: pointer;
+  transform: translate(0, -2px);
 }
 
 input {
-    border-radius: 20px;
+    width: 100%;
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-size: 1rem;
+    transition: 0.2s ease;
+}
+
+input:focus{
+   outline: none;
+   box-shadow: 0 0 0 3px rgba(154, 96, 171, 0.2);
+  
 }
 
 a {
@@ -168,6 +197,13 @@ a {
   height: 70%;
   object-fit: cover;
   border-radius: 20px;
+
+}
+
+.error-messages{
+  color: red;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 

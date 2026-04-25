@@ -1,4 +1,5 @@
 <script setup>
+  const first_name = localStorage.getItem("first_name");
   
 </script>
 
@@ -7,7 +8,7 @@
 
     <div class="user">
        <img src="/images/profile.jpg" alt="pic">
-      <div class="name">Hi Alric!</div>
+      <div class="name">Hi {{ first_name }}!</div>
      
     </div>
    
@@ -23,9 +24,6 @@
         </li>
         <li>
           <RouterLink to="/bookmarks" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
-        </li>
-        <li>
-          <RouterLink to="/messages"><i class="fa-solid fa-comment"></i>Messages</RouterLink>
         </li>
       </ul>
 

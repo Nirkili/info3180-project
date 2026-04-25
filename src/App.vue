@@ -46,7 +46,7 @@ body{
 
 .main-content {
   flex: 1;
-  background-color: white;
+  background-color: none;
   padding: 20px;
   border-radius: 20px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);

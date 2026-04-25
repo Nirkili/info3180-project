@@ -1,7 +1,8 @@
 from faker import Faker
 import random
-from app import db, app
+from app import db, app, bcrypt
 from app.models import User, Profile, Interest, UserInterest
+ 
 
 fake = Faker()
 def genData():
@@ -12,16 +13,33 @@ def genData():
                 
                 all_interests = Interest.query.all()
 
+                credentials = []
+
                 for i in range(100):
-                    fname = fake.first_name()
+                    gender = random.choice(gender_options)
+
+                    if gender == "Female":fname = fake.first_name_female()
+                    elif gender == 'Male': fname = fake.first_name_male()
+                    else:fname = fake.first_name()
+
+                    print(fname)
+
+
                     lname = fake.last_name()
+                    username = f"{fname.lower()}{lname.lower()}{i}"
+                    email = f"{fname.lower()}.{lname.lower()}{random.randint(1, 999)}@gmail.com"
+                    plain_password = f"pass123{i}"
+                    visibility = random.choices(["Public", "Private"], weights=[80, 20], k=1)[0]
+                    print(f"{fname}, {visibility}")
                     
+                    credentials.append(f"{email}, {plain_password}\n")
+
                     new_user = User(
                         first_name=fname,
                         last_name=lname,
-                        user_name=f"{fname.lower()}{lname.lower()}{i}",
-                        email=fake.unique.email(),
-                        password=f"pass123{i}"
+                        user_name= username,
+                        email=email,
+                        password = bcrypt.generate_password_hash(plain_password).decode('utf-8')
                     )
                     
                     db.session.add(new_user)
@@ -30,14 +48,15 @@ def genData():
                     new_profile = Profile(
                         user_ID=new_user.user_ID,
                         date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=60),
-                        gender=random.choice(gender_options),
+                        gender=gender,
                         bio=fake.sentence(nb_words=12),
                         location=random.choice(parishes),
-                        visibility_status=random.choice(["Public", "Private"]),
+                        visibility_status= visibility,
                         picture_filename="default.jpg",
                         gender_preference=random.choice(gender_options),
                         wants_children=random.choice(["Wants Children", "Does Not Want Children"]),
-                        relationship_type_preference=random.choice(["Casual","Serious"])
+                        age_preference=random.choice(['Young_Adult', 'Adult', 'MiddleAged', 'Old']),                        relationship_type_preference=random.choice(["Casual","Serious"]),
+                        radius_preference=random.choice(['25', '50', '100', '300'])
                     )
                     db.session.add(new_profile)
 
@@ -48,6 +67,9 @@ def genData():
 
                 db.session.commit()
                 print("Successfully added 100 users!")
+                return credentials
+
+                
 
             except Exception as e:
 
@@ -55,14 +77,7 @@ def genData():
                 print(f"Transaction failed. Error: {e}")
             
 def genInterests():
-    interests_list = [
-    "Yoga", "Meditation", "Hiking", "Swimming", "Gardening",
-    "Cooking", "Baking", "Pets", "Fashion", "Fitness",
-    "Writing", "Blogging", "Entrepreneurship", "Investing", "Photography",
-    "Art", "Reading", "Learning", "Travel", "Volunteering",
-    "Gaming", "Movies", "Anime", "Music", "Social Media",
-    "Cars", "Tech", "Science", "Coding", "Knitting"
-    ]
+    interests_list = ["Coding", "Investing","Entrepreneurship","Fitness","Meditation","Reading","Learning","Writing","Photography","Tech","Science","Travel","Cooking","Music","Social Media"]
     
     with app.app_context():
         try:
@@ -81,4 +96,12 @@ if __name__ == "__main__":
         db.session.execute(db.text('TRUNCATE TABLE "User", "Profile", "UserInterest", "Interest" RESTART IDENTITY CASCADE;'))
         db.session.commit()
     genInterests()
-    genData()
+    users = genData()
+
+    # Write to file
+
+    with open('credentials.txt', "w", encoding="utf-8") as f:
+         for i in users:
+              f.write(i)
+    print("created file")
+

@@ -98,6 +98,22 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
         ('Non-binary', 'Non-binary')
     ], validators=[InputRequired()])
 
+    age_preference = SelectField('Age Preference', choices=[
+      ('', 'Select an option'),
+      ('18-24', '18-24'),
+      ('25-29', '25-29'),
+      ('30-40', '30-40'),
+      ('>41', '>41')
+    ])
+
+    location_radius_preference = SelectField('Radius', choices=[
+      ('', 'Select and option'),
+      ('25', 'Within 25km'),
+      ('50', 'Within 50km'),
+      ('100', 'Within 100km'),
+      ('300', "Island Wide")
+    ], validators=[InputRequired()])
+
     wants_children = SelectField('Do You Want Children?', choices=[
         ('', 'Select an option'),
         ('Wants Children',          'Wants Children'),

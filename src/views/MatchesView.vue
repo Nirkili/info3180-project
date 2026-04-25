@@ -1,4 +1,14 @@
+
 <template>
-  <h1>Matches</h1>
-  <p>This is the beginning of matches</p>
+  <div class="matches-container">
+
+  </div>
 </template>
+
+<style scoped>
+
+.main-content{
+  background: white;
+}
+
+</style>

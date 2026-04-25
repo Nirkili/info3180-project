@@ -14,7 +14,7 @@ let errorMessages = ref([])
     authStore.checkAuth();
   })
 
-  function getCsrfToken() {
+  function getCsrfToken() { 
     return fetch('/api/v1/csrf-token')
       .then((response) => response.json())
       .then((data) => {

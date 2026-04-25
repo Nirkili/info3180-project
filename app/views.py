@@ -6,12 +6,13 @@ This file creates your application.
 """
 
 from . import app, db, bcrypt
-from flask import render_template, request, jsonify, send_file, redirect, url_for
+from flask import render_template, request, jsonify, send_file, redirect, url_for, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import generate_csrf
 from .models import *
 from .forms import *
+from .matching_algorithm import calc_score
 import os
 
 
@@ -118,7 +119,9 @@ def login():
                 
                 return jsonify({
                     'message': 'Login Successful',
-                    'user_id': user.user_ID
+                    'user_id': user.user_ID,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
                 }), 200
             
             return jsonify({'errors': [
@@ -171,6 +174,10 @@ def get_my_profile():
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
+
+
+
+
 
 @app.route('/api/v1/profile', methods=['PUT'])
 @login_required
@@ -240,18 +247,22 @@ def get_profile(profile_id):
 
 @app.route('/api/v1/user/search', methods=['GET'])
 @login_required
-def search_users():
+def searchUsers():
     searchTerm = request.args.get('searchTerm','').strip()
     filt1 = request.args.get('filter1')
     filt2 = request.args.get('filter2')
     filt3 = request.args.get('filter3')
+    filt4 = request.args.get('filter4')
+    sort = request.args.get('sort')
     
-    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
+    options = {"ASC": User.first_name, "DSC": User.first_name.desc(), "Age": Profile.age, "date_created": User.created_at}
+    
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public").order_by(options.get(sort, User.first_name))
     
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
         
-    if filt1 != "none":
+    if filt1 and filt1 != "none":
         today = date.today()
         if filt1 == ">41":
             max_dob = today - timedelta(days=42 * 365.25)
@@ -263,11 +274,14 @@ def search_users():
         
             current = current.filter(Profile.date_of_birth.between(earliest_dob, latest_dob))
             
-    if filt2 != "none":
+    if filt2 and filt2 != "none":
         current = current.filter(Profile.gender == filt2)
         
-    if filt3 != "none":
+    if filt3 and filt3 != "none":
         current = current.filter(Profile.location == filt3)
+        
+    if filt4 and filt4 != "none":
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
         
     res = current.all()
     
@@ -281,6 +295,109 @@ def search_users():
         "photo": f"/api/v1/images/{prof.picture_filename}"
         } for (use, prof) in res]), 200
 
+
+
+
+@app.route('/api/v1/user/bookmarks', methods=['GET'])
+@login_required
+def getBookmarkedUsers():
+
+    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
+
+    return jsonify([{
+        "username": u.user_name,
+        "f_name": u.first_name,
+        "l_name": u.last_name,
+        "gender": p.gender,
+        "age": p.age,
+        "location": p.location,
+        "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
+
+@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
+@login_required
+def deleteBookmarkedUser(profile_ID):
+    delete_Bookmark = True
+    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    
+    if not res:
+        delete_Bookmark = False
+    
+    db.session.delete()
+    db.session.commit()
+
+    return jsonify({"message": "Bookmark deleted successfully."}), 200
+
+@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
+@login_required
+def addBookmarkedUser(profile_ID):
+    make_Bookmark = True
+    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    
+    if res:
+        make_Bookmark = False
+    
+    bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
+    
+    db.session.add(bookmark)
+    db.session.commit()
+
+    return jsonify({"message": "Bookmark added successfully.",
+                    "makeBookmark": make_Bookmark}), 201
+
+
+
+
+
+@app.route('/api/v1/matches', methods=['GET'])
+@login_required
+def matching_algorithm():
+    # Retrieve the current user's profile and interests
+    current_profile = db.session.execute(db.select(Profile).where(Profile.user_ID == current_user.user_ID)).scalar_one()
+    current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == current_user.user_ID)).scalars().all()
+
+    # Remove profiles already liked/disliked
+    removed_IDs = db.session.execute(db.select(Likes.liked_user_ID).where (Likes.user_ID == current_user.user_ID)).scalars().all()
+
+    # Get all other users
+    potential_matches = db.session.execute(
+    db.select(User, Profile)
+    .join(Profile, Profile.user_ID == User.user_ID) 
+    .where(User.user_ID != current_user.user_ID)
+    .where(Profile.visibility_status == "Public")
+    .where(User.user_ID.notin_(removed_IDs))
+    ).all()
+
+    # Call matching algorithm
+    matches = []
+
+    for other, profile in potential_matches:
+        # Get user intesest
+        interests = db.session.execute(db.select(UserInterest.interest_ID). where(UserInterest.user_ID == other.user_ID))
+
+        score = calc_score(current_profile, current_interests, profile, interests)
+
+        matches.append({
+
+                "user_ID": other.user_ID,
+                "f_name": other.first_name,
+                "l_name": other.last_name,
+                "username": other.user_name,
+                "age": profile.age,
+                "bio": profile.bio,
+                "gender": profile.gender,
+                "location": profile.location,
+                "photo": f"/api/v1/images/{profile.picture_filename}",
+                "score": score,
+                "percentage": round(((score/11.5) * 100), 2) # FIX THIS
+            })
+
+    matches.sort(key=lambda m: m["score"], reverse=True)
+    
+    return jsonify(matches),200 
+
+    
+
+
 @app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
 @login_required
 def get_bookmarked_users(user_ID):
@@ -288,13 +405,18 @@ def get_bookmarked_users(user_ID):
 
     return jsonify(bookmarks = bookmarks), 200
 
-@app.route('/api/v1/<int:user_ID>/matches', methods=['GET'])
+
+
+
+@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
 @login_required
-def get_matched_users(user_ID):
+def get_bookmarks(user_ID):
     bookmarks = db.session.execute(
         db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
 
     return jsonify(bookmarks = bookmarks), 200
+
+
 
 
 # Used when the User sets their interests right after registering
@@ -304,14 +426,27 @@ def interest():
     pass
 
 
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
 
 # CSRF
 @app.route('/api/v1/csrf-token', methods=['GET'])
 def get_csrf():
     return jsonify({'csrf_token': generate_csrf()})
+
+
+
+@app.route('/api/v1/images/<filename>')
+def uploads(filename):
+    #upload_folder = os.path.join(os.getcwd(), 'uploads')
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 
 @login_manager.unauthorized_handler
 def unauthorized():
@@ -320,6 +455,7 @@ def unauthorized():
 ###
 # The functions below should be applicable to all Flask apps.
 ###
+
 
 # Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
@@ -358,3 +494,4 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
