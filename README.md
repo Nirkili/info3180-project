@@ -30,7 +30,7 @@ npm run build
 
 ## Start Flask API
 
-PROJECT DESCRIPTION:
+## PROJECT DESCRIPTION:
 
 DriftDater is a dating app that allows registered users to create detailed profiles, discover 
 compatible matches, and initiate connections with other users. Users will be able to:
@@ -50,7 +50,7 @@ Dana Archer -
 Jaden Anthony -
 Tara-Lee Donald -
 
-SETUP INSTRUCTIONS: 
+## SETUP INSTRUCTIONS: 
 
 1. Clone the starter repository 
 2. Create a Python virtual environment: python -m venv venv 
@@ -63,7 +63,7 @@ SETUP INSTRUCTIONS:
 http://localhost:5173)
 8. Run generator file to generate fake users for the app if needed.
 
-API DOCUMENTATION:
+## API DOCUMENTATION:
 
 1. ROUTE - `/api/v1/auth/register`
 register() - The register endpoint accepts no parameters and creates a user using the `POST` method. If successful, returns a status code of 201, the newly created user ID and a message saying "Registration successful". If not, a response code of 400 is returned and all error messages relating to the form are returned.
