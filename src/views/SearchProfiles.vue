@@ -77,18 +77,11 @@
                 <option value = "date_created">Date Created</option>
             </select>
         </div>
-        <div v-for= "user in users" :key = user.user_ID class = "card">
-            <div class = "imgContainer">
-                <img :src = "user.photo" alt = "profile picture"/>
-            </div>
-            <div class = "card-title">
-                <p>{{ user.f_name }} {{ user.l_name }}, {{ user.age }}</p>
-            </div>      
-            <div class = "card-body">
-                <p class = "card-subtitle text-muted">@{{ user.username }}</p>
-                <p>{{ user.gender }}</p>
-                <p>{{ user.location }}</p>
-            </div>
+        <div v-for= "user in users" :key = "user.userID">
+            <ProfileCard :user="user">
+                <a>Bookmark Icon goes here</a>
+            </ProfileCard>
+
         </div>
     </div>
     <div v-else id = "noRes">
@@ -101,6 +94,7 @@
 <script setup>
 
     import { ref, onMounted } from 'vue';
+    import ProfileCard from '@/components/ProfileCard.vue';
 
     const searchTerm = ref("");
     const filter1 = ref("none");
@@ -144,21 +138,8 @@
         sort.value = "ASC";
     }
 
-    /*function getCsrfToken() {
-    return fetch('/api/v1/csrf-token')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data)
-        csrf_token.value = data.csrf_token
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-    }*/
-
     onMounted(() => {
         searchUsers();
-        //getCsrfToken();
     });
 
 </script>
@@ -182,47 +163,6 @@
             grid-template-columns: repeat(3, 1fr);
         }
     }
-
-    .card{
-        padding: 20px;
-        align-items: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;     
-    }
-
-    .card-body p{
-        margin-bottom: 5px;
-    }
-
-    .card-subtitle{
-        font-size: 14px;
-        padding-top: 0px;
-    }
-    .card-title{
-        font-weight: bold;
-        margin-bottom: -10px;
-    }
-
-    .card-body, .card-title {
-        text-align: center;
-        width: 100%;
-        overflow-wrap: break-word;
-    }
-
-
-    .imgContainer img {
-        width: 100%;
-        max-width: 150px;   /* adjust as needed */
-        height: auto;
-        border-radius: 10px;
-        object-fit: cover;
-    }
-
 
     #search{
         background-color: #4a154b;

@@ -1,11 +1,15 @@
 <script setup>
-import { ref, onMounted, resolveComponent } from 'vue';
-import { errorMessages } from 'vue/compiler-sfc';
+import { ref, onMounted, /*resolveComponent*/ } from 'vue';
+//import { errorMessages } from 'vue/compiler-sfc';
+import ProfileCard from '@/components/ProfileCard.vue';
 
 let csrf_token = ref("");
 let sucessMessage = ref("");
 let errorMessage = ref("");
 let matchList = ref([])
+let match = ref(false)
+let showMatch = ref(false)
+let sortOrder = ref('desc')
 
 let message = ref("Hello World! This is a VueJS and Flask Starter Template.")
 
@@ -24,9 +28,9 @@ function getCsrfToken() {
 
 function loadMatches(){
 
-  fetch('/api/v1/matches',{
+  fetch(`/api/v1/matches?sort=${sortOrder.value}`,{
     method:'GET',
-    headers: {'X-CSRFToken': csrf_token.value,}
+    headers: {'Content-Type': 'application/json'}
   })
 
   .then(function(response){
@@ -51,6 +55,34 @@ function loadMatches(){
 
 }
 
+async function rateUser(userID, type){
+    console.log(type)
+    
+    fetch(`/api/v1/users/${userID}/interaction`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf_token.value
+        },
+        body: JSON.stringify({type: type})
+    })
+
+    .then(function(response){
+        return response.json()
+    })
+
+    .then(function(data){
+        console.log('matched:', data.matched)
+        // Remove card fromthe list
+        matchList.value = matchList.value.filter(m => m.user_ID !== userID)
+
+        if(data.matched){
+            showMatch.value = true;
+            setTimeout(() => showMatch.value = false, 3000)
+        }
+    })
+}
+
 onMounted(() => {
   getCsrfToken()
   loadMatches()
@@ -62,24 +94,23 @@ onMounted(() => {
 
 <template>
     <div class="container">
-      <div v-for= "m in matchList" :key = m.user_ID class = "card">
-            <div class = "imgContainer">
-                <img :src = "m.photo" alt = "profile picture"/>
-            </div>
-            <div class = "card-title">
-                <p>{{ m.f_name }} {{ m.l_name }}, {{ m.age }}</p>
-            </div>      
-            <div class = "card-body">
-                <p class = "card-subtitle text-muted">@{{ m.username }}</p>
-                <p>{{ m.gender }}</p>
-                <p>{{ m.location }}</p>
-                <p>{{ m.percentage }}%</p>
-            </div>
-            <div class="interaction">
-                <a><i class="fa-solid fa-thumbs-up"></i> Like</a>
-                <a><i class="fa-solid fa-thumbs-down"></i> Pass</a>
+        <div v-if="showMatch" class="match-notification">
+            It's a Match!
+        </div>
 
-            </div>
+        <div class="filter-container">
+          <select v-model="sortOrder" @change="loadMatches">
+            <option value="desc">Best Matches</option>
+            <option value="asc">Worst Matches</option>
+          </select>
+        </div>
+
+      <div v-for= "m in matchList" :key ="m.userID">
+        <ProfileCard :user="m">
+            <a @click="rateUser(m.user_ID, 'Like')"><i class="fa-solid fa-thumbs-up"></i> Like</a>
+            <a @click="rateUser(m.user_ID, 'Pass')"><i class="fa-solid fa-thumbs-down"></i> Pass</a>
+
+        </ProfileCard>
         </div>
     </div>
 </template>
@@ -100,45 +131,18 @@ onMounted(() => {
     }
 }
 
-    .card{
-        padding: 20px;
-        align-items: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;     
-    }
-
-    .card-body p{
-        margin-bottom: 5px;
-    }
-
-    .card-subtitle{
-        font-size: 14px;
-        padding-top: 0px;
-    }
-    .card-title{
-        font-weight: bold;
-        margin-bottom: -10px;
-    }
-
-    .card-body, .card-title {
-        text-align: center;
-        width: 100%;
-        overflow-wrap: break-word;
-    }
-
-
-    .imgContainer img {
-        width: 100%;
-        max-width: 150px;   /* adjust as needed */
-        height: auto;
-        border-radius: 10px;
-        object-fit: cover;
-    }
+    .match-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: green;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 24px;
+    z-index: 9999;
+}
 
 /* Add any component specific styles here */
 </style>

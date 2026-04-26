@@ -327,6 +327,7 @@ def deleteBookmarkedUser(profile_ID):
 
     return jsonify({"message": "Bookmark deleted successfully."}), 200
 
+
 @app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
 def addBookmarkedUser(profile_ID):
@@ -390,10 +391,130 @@ def matching_algorithm():
                 "score": score,
                 "percentage": round(((score/11.5) * 100), 2) # FIX THIS
             })
+        
+    sort = request.args.get('sort', 'desc')
 
-    matches.sort(key=lambda m: m["score"], reverse=True)
+    matches.sort(key=lambda m: m["score"], reverse=(sort == 'desc'))
     
     return jsonify(matches),200 
+
+
+@app.route('/api/v1/users/<int:user_ID>/interaction', methods=['POST'])
+@login_required
+def rate_user(user_ID):
+
+    target = db.session.execute(db.select(User).where(User.user_ID == user_ID)).scalar_one_or_none()
+    if not target:
+         return jsonify({'error': 'Profile not found'}), 404
+
+    # Check that user exists
+    if user_ID:
+
+        # Check to see if the current user has already interacted with this profile
+        has_interacted = db.session.execute(db.select(Likes).where(Likes.user_ID == current_user.user_ID, Likes.liked_user_ID == user_ID)).scalar_one_or_none()
+
+        if has_interacted:
+            return jsonify({
+                'message': 'You have already interacted with this user'
+            }), 400
+
+        type_str = request.json.get('type')
+        type = LikeType(type_str)
+        print(f"type_str: {type_str}")
+        print(f"type: {type}")
+        print(f"type.value: {type.value}")
+        
+
+        # Add interaction
+        like = Likes(
+            user_ID = current_user.user_ID,
+            liked_user_ID = user_ID,
+            type = type
+        )
+        db.session.add(like)
+        db.session.commit()
+
+        if type == LikeType.PASS:
+            return jsonify({"message": "Action recorded", "matched": False}), 201
+
+        # Check if the other user has liked the current user
+        match = db.session.execute(db.select(Likes).where(Likes.user_ID == user_ID, Likes.liked_user_ID == current_user.user_ID, Likes.type == LikeType.LIKE)).scalar_one_or_none()
+
+        if not match:
+            return jsonify({"message": "Action recorded", "matched": False}), 201
+        
+        if match:
+
+            # Check if the match already exists
+            existing_match = db.session.execute(db.select(Match).where(
+                db.or_(
+                    db.and_(Match.user_ID == current_user.user_ID, Match.match_user_ID == user_ID),
+                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == current_user.user_ID))
+            )).scalar_one_or_none()
+
+            if not existing_match:
+                new_match = Match(
+                    user_ID = current_user.user_ID,
+                    match_user_ID = user_ID
+                )
+                db.session.add(new_match)
+                db.session.commit()
+
+                return jsonify({ 'success': f'You have a match!', "matched":True}), 201 
+            
+            else: return jsonify({ 'success': f'You have already matched with this user', "matched":True}), 201 
+    else:
+        return jsonify({'error': 'Profile not found'}), 404
+
+
+@app.route('/api/v1/user/matches', methods=['GET'])
+@login_required
+def get_matches():
+    print(f"current_user_ID: {current_user.user_ID}")
+    
+    # Get all rows that include the current user's ID
+    matches = db.session.execute(db.select(Match).where(
+        db.or_(
+            Match.user_ID == current_user.user_ID,
+            Match.match_user_ID == current_user.user_ID
+        )
+    )).scalars().all()
+    print(f"matches: {matches}")
+
+    other_users = []
+
+    if matches:
+        for match in matches:
+            if match.user_ID == current_user.user_ID:
+                other_users.append(match.match_user_ID)
+            else:
+                other_users.append(match.user_ID)
+        
+        # Get Profiles
+        print(f"other_users: {other_users}")
+
+        profiles = []
+
+        for user in other_users:
+            profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == User.user_ID).where(User.user_ID == user)).first()
+            user_obj, profile_obj = profile
+
+            profiles.append((user_obj, profile_obj))
+
+        return jsonify([{
+            "user_ID": user_obj.user_ID,
+            "username": user_obj.user_name,
+            "f_name": user_obj.first_name,
+            "l_name": user_obj.last_name,
+            "age": profile_obj.age,
+            "bio": profile_obj.bio,
+            "location": profile_obj.location,
+            "photo": f"/api/v1/images/{profile_obj.picture_filename}"
+        } for user_obj, profile_obj in profiles]), 200
+    
+    else:
+         return jsonify({'message': 'No Matches'}), 404
+
 
     
 
