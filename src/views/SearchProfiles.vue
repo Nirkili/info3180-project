@@ -11,7 +11,7 @@
                     <select v-model = "filter1" name = "filter1" class=" filtGrp">
                         <option value = "none" disabled selected hidden>Age Range</option>
                         <option value = "18-24">18-24</option>
-                        <option value = "25-30">25-30</option>
+                        <option value = "25-29">25-29</option>
                         <option value = "30-40">30-41</option>
                         <option value = ">41">>41</option>
                     </select>
@@ -38,6 +38,7 @@
                         <option value = "St. Mary">St. Mary</option>
                         <option value = "St. Ann">St. Ann</option>
                         <option value = "St. James">St. James</option>
+                        
                     </select>
 
                     <select v-model="filter4" name="filter4" class="filtGrp">
@@ -65,7 +66,17 @@
 
         </form>
     </div>
+    <<!--div class="search-res-container">-->
     <div class = "searchRes" v-if ="users.length > 0">
+        <div>
+            <label for = "sort">Sort By:</label>
+            <select v-model = "sort" name = "sort" class="filtGrp">
+                <option value = "ASC">Ascending</option>
+                <option value = "DESC">Descending</option>
+                <option value = "Age">Age</option>
+                <option value = "date_created">Date Created</option>
+            </select>
+        </div>
         <div v-for= "user in users" :key = user.user_ID class = "card">
             <div class = "imgContainer">
                 <img :src = "user.photo" alt = "profile picture"/>
@@ -83,7 +94,8 @@
     <div v-else id = "noRes">
         <p>No user matches this request.</p>
     </div>
-
+<!--</div>-->
+    
 </template>
 
 <script setup>
@@ -95,7 +107,10 @@
     const filter2 = ref("none");
     const filter3 = ref("none");
     const filter4 = ref("none");
+    const sort = ref("none");
     const users = ref([]);
+    const csrf_token = ref("");
+
 
     function searchUsers(){
         const params = new URLSearchParams({
@@ -103,14 +118,17 @@
             filter1: filter1.value,
             filter2: filter2.value,
             filter3: filter3.value,
-            filter4: filter4.value
+            filter: filter4.value,
+            sort: sort.value
         });
         fetch(`/api/v1/user/search?${params}`,{
-            method: 'GET'
+            method: 'GET',
+            headers:{'X-CSRFToken': csrf_token.value,}
         })
         .then(response => response.json())
         .then (function (data) { 
             users.value = data; 
+            console.log(data)
         }) 
         .catch(function (error) { 
             console.log(error); 
@@ -118,36 +136,63 @@
     }
     
     function clearFilt(){
-        searchTerm.value = ""
-        filter1.value = "none"
-        filter2.value = "none"
-        filter3.value = "none"
-        filter4.value = "none"
+        searchTerm.value = "";
+        filter1.value = "none";
+        filter2.value = "none";
+        filter3.value = "none";
+        filter4.value = "none";
+        sort.value = "ASC";
     }
+
+    /*function getCsrfToken() {
+    return fetch('/api/v1/csrf-token')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data)
+        csrf_token.value = data.csrf_token
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+    }*/
 
     onMounted(() => {
         searchUsers();
+        //getCsrfToken();
     });
 
 </script>
 
 <style>
+
+    .main-content{
+        background-color: none;
+    }
     
     .searchRes{
         display: grid;
-        grid-template-columns: repeat(2,1fr);
-        gap: 15px;
-        max-height: 1000px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    @media (min-width: 1024px) {
+        .searchRes {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
     .card{
-        padding: 10px;
+        padding: 20px;
         align-items: center;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        overflow-y: auto;
-        width: 50%;
+
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;     
     }
 
     .card-body p{
@@ -163,20 +208,46 @@
         margin-bottom: -10px;
     }
 
+    .card-body, .card-title {
+        text-align: center;
+        width: 100%;
+        overflow-wrap: break-word;
+    }
+
+
+    .imgContainer img {
+        width: 100%;
+        max-width: 150px;   /* adjust as needed */
+        height: auto;
+        border-radius: 10px;
+        object-fit: cover;
+    }
+
+
     #search{
         background-color: #4a154b;
     }
+
     #searchContainer{
         padding: 50px;
+        padding-bottom: 20px;
+        padding-top: 20px;
         display: flex;
         justify-content: center;
         flex-direction: row;
+        border-radius: 20px;
+        position: sticky;
+
+
+        margin-bottom: 20px;
     }
+
     #filtContainer{
         display: flex;
         flex-direction: row;
         gap: 30px;
         padding-left: 10px;
+        
     }
     .filtGrp{
         border-radius: 5px;

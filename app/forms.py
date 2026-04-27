@@ -98,6 +98,22 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
         ('Non-binary', 'Non-binary')
     ], validators=[InputRequired()])
 
+    age_preference = SelectField('Age Preference', choices=[
+      ('', 'Select an option'),
+      ('18-24', '18-24'),
+      ('25-29', '25-29'),
+      ('30-40', '30-40'),
+      ('>41', '>41')
+    ])
+
+    location_radius_preference = SelectField('Radius', choices=[
+      ('', 'Select and option'),
+      ('25', 'Within 25km'),
+      ('50', 'Within 50km'),
+      ('100', 'Within 100km'),
+      ('300', "Island Wide")
+    ], validators=[InputRequired()])
+
     wants_children = SelectField('Do You Want Children?', choices=[
         ('', 'Select an option'),
         ('Wants Children',          'Wants Children'),
@@ -119,39 +135,3 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
 
 
 
-# Just in case :(
-class SearchForm(FlaskForm):
-  name_bio = StringField('Name/Bio')
-
-  ages = SelectField('Age', choices=[
-    ('', 'All Ages'),
-    ('18-24', '18-24'),
-    ('25-30', '25-30'),
-    ('30-40', '30-40'),
-    ('>40', '>40'),
-  ])
-
-  location = SelectField('Location', choices=[
-    ('', 'Select Parish'),
-    ('Kingston',        'Kingston'),
-    ('St. Andrew',      'St. Andrew'),
-    ('St. Thomas',      'St. Thomas'),
-    ('Portland',        'Portland'),
-    ('St. Mary',        'St. Mary'),
-    ('St. Ann',         'St. Ann'),
-    ('Trelawny',        'Trelawny'),
-    ('St. James',       'St. James'),
-    ('Hanover',         'Hanover'),
-    ('Westmoreland',    'Westmoreland'),
-    ('St. Elizabeth',   'St. Elizabeth'),
-    ('Manchester',      'Manchester'),
-    ('Clarendon',       'Clarendon'),
-    ('St. Catherine',   'St. Catherine'),
-  ])
-
-  gender = SelectField('Gender', choices=[
-    ('', 'Select gender'),
-    ('Female',     'Female'),
-    ('Male',       'Male'),
-    ('Non-binary', 'Non-binary')
-  ])

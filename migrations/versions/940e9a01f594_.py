@@ -1,8 +1,8 @@
-"""Initial Schema
+"""empty message
 
-Revision ID: 96b05955fe8b
+Revision ID: 940e9a01f594
 Revises: 
-Create Date: 2026-04-05 16:43:20.669008
+Create Date: 2026-04-25 11:28:50.917860
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '96b05955fe8b'
+revision = '940e9a01f594'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -68,7 +68,7 @@ def upgrade():
     op.create_table('Profile',
     sa.Column('profile_ID', sa.Integer(), nullable=False),
     sa.Column('user_ID', sa.Integer(), nullable=False),
-    sa.Column('age', sa.Integer(), nullable=False),
+    sa.Column('date_of_birth', sa.Date(), nullable=False),
     sa.Column('gender', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender'), nullable=False),
     sa.Column('bio', sa.Text(), nullable=True),
     sa.Column('location', sa.String(length=100), nullable=False),
@@ -77,6 +77,9 @@ def upgrade():
     sa.Column('gender_preference', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender_preference'), nullable=False),
     sa.Column('wants_children', postgresql.ENUM('DOES_WANT', 'DOES_NOT', name='children_preference'), nullable=False),
     sa.Column('relationship_type_preference', postgresql.ENUM('CASUAL', 'SERIOUS', name='relationship_preference'), nullable=False),
+    sa.Column('age_preference', postgresql.ENUM('Young_Adult', 'Adult', 'MiddleAged', 'Old', name='age_preference'), nullable=False),
+    # Fixed
+    sa.Column('radius_preference', sa.Enum('25', '50', '100', '250', name='location_preference'), nullable=False),
     sa.ForeignKeyConstraint(['user_ID'], ['User.user_ID'], ),
     sa.PrimaryKeyConstraint('profile_ID')
     )
