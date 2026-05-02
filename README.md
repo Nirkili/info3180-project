@@ -16,9 +16,9 @@ compatible matches, and initiate connections with other users. Users will be abl
 
 ## TEAM MEMBERS AND ROLES:
 
-Dana Archer - 
-Jaden Anthony -
-Tara-Lee Donald -
+Dana Archer - Backend Lead, Project Manager
+Jaden Anthony - Frontend Lead
+Tara-Lee Donald - QA/Testing Lead 
 
 ## SETUP INSTRUCTIONS: 
 

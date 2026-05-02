@@ -66,29 +66,29 @@
 
         </form>
     </div>
-    <<!--div class="search-res-container">-->
-    <div class = "searchRes" v-if ="users.length > 0">
-        <div>
+    <div id = "sortPanel" v-if ="users.length > 0">
+        <div id = "sorts">
             <label for = "sort">Sort By:</label>
-            <select v-model = "sort" name = "sort" class="filtGrp">
+            <select v-model = "sort" name = "sort" class="sort" @change="searchUsers">
+                <option value="none" disabled selected hidden>Age</option>
                 <option value = "ASC">Ascending</option>
-                <option value = "DESC">Descending</option>
-                <option value = "Age">Age</option>
-                <option value = "date_created">Date Created</option>
+                <option value = "DSC">Descending</option>
+            </select>
+
+            <select v-model = "sort1" name = "sort1" class="sort" @change="searchUsers">
+                <option value="none" disabled selected hidden>Date Created</option>
+                <option value = "ASC1">Ascending</option>
+                <option value = "DSC1">Descending</option>
             </select>
         </div>
-        <div v-for= "user in users" :key = user.user_ID class = "card">
-            <div class = "imgContainer">
-                <img :src = "user.photo" alt = "profile picture"/>
-            </div>
-            <div class = "card-title">
-                <p>{{ user.f_name }} {{ user.l_name }}, {{ user.age }}</p>
-            </div>      
-            <div class = "card-body">
-                <p class = "card-subtitle text-muted">@{{ user.username }}</p>
-                <p>{{ user.gender }}</p>
-                <p>{{ user.location }}</p>
-            </div>
+    </div>
+
+    <div class = "searchRes" v-if ="users.length > 0">
+        <div v-for= "user in users" :key = user.user_ID>
+            <ProfileCard :user = "user">
+                <a v-if="user.bookmarked"  @click="removebookmark(user.profile_ID)"><i class="bi bi-bookmark-fill">Remove from Bookmarks</i></a>
+                <a v-else @click="addbookmark(user.profile_ID)"><i class="bi bi-bookmark">Add to Bookmarks</i></a>
+            </ProfileCard>
         </div>
     </div>
     <div v-else id = "noRes">
@@ -101,6 +101,7 @@
 <script setup>
 
     import { ref, onMounted } from 'vue';
+    import ProfileCard from '../components/ProfileCard.vue';
 
     const searchTerm = ref("");
     const filter1 = ref("none");
@@ -108,32 +109,75 @@
     const filter3 = ref("none");
     const filter4 = ref("none");
     const sort = ref("none");
+    const sort1 = ref("none");
     const users = ref([]);
     const csrf_token = ref("");
 
 
     function searchUsers(){
-        const params = new URLSearchParams({
-            searchTerm: searchTerm.value,
-            filter1: filter1.value,
-            filter2: filter2.value,
-            filter3: filter3.value,
-            filter: filter4.value,
-            sort: sort.value
-        });
-        fetch(`/api/v1/user/search?${params}`,{
-            method: 'GET',
-            headers:{'X-CSRFToken': csrf_token.value,}
+        fetch(`/api/v1/user/search`,{
+            method: 'POST',
+            headers:{'X-CSRFToken': csrf_token.value,
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                searchTerm: searchTerm.value,
+                filter1: filter1.value,
+                filter2: filter2.value,
+                filter3: filter3.value,
+                filter4: filter4.value,
+                sort: sort.value,
+                sort1: sort1.value
+            })
         })
         .then(response => response.json())
         .then (function (data) { 
             users.value = data; 
-            console.log(data)
         }) 
         .catch(function (error) { 
             console.log(error); 
         }); 
     }
+
+    function addbookmark(profile_ID){
+        fetch(`/api/v1/user/bookmarks/${profile_ID}`,{
+            method: 'POST',
+            headers:{'X-CSRFToken': csrf_token.value,
+            'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then (function (data) { 
+            console.log(data);
+            searchUsers(); 
+        }) 
+        .catch(function (error) { 
+            console.log(error); 
+        }); 
+    }
+
+    function removebookmark(profile_ID){
+
+    if (!window.confirm("Are you sure you want to remove this bookmark?")) {
+      return; 
+    }
+
+    fetch(`/api/v1/user/bookmarks/${profile_ID}`, {
+        method: 'DELETE',
+        headers:{'X-CSRFToken': csrf_token.value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then (function (data) { 
+        console.log(data);
+        searchUsers();
+    }) 
+    .catch(function (error) { 
+        console.log(error); 
+    }); 
+
+    };
     
     function clearFilt(){
         searchTerm.value = "";
@@ -141,24 +185,27 @@
         filter2.value = "none";
         filter3.value = "none";
         filter4.value = "none";
-        sort.value = "ASC";
+        sort.value = "none";
+        sort1.value = "none";
+
+        searchUsers();
     }
 
-    /*function getCsrfToken() {
+    function getCsrfToken() {
     return fetch('/api/v1/csrf-token')
       .then((response) => response.json())
       .then((data) => {
-        console.log(data)
+
         csrf_token.value = data.csrf_token
       })
       .catch((error) => {
         console.log(error)
       })
-    }*/
+    }
 
-    onMounted(() => {
+    onMounted(async () => {
+        await getCsrfToken();
         searchUsers();
-        //getCsrfToken();
     });
 
 </script>
@@ -171,7 +218,7 @@
     
     .searchRes{
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 30px;
         width: 100%;
         margin: 0 auto;
@@ -179,50 +226,9 @@
 
     @media (min-width: 1024px) {
         .searchRes {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
         }
     }
-
-    .card{
-        padding: 20px;
-        align-items: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;     
-    }
-
-    .card-body p{
-        margin-bottom: 5px;
-    }
-
-    .card-subtitle{
-        font-size: 14px;
-        padding-top: 0px;
-    }
-    .card-title{
-        font-weight: bold;
-        margin-bottom: -10px;
-    }
-
-    .card-body, .card-title {
-        text-align: center;
-        width: 100%;
-        overflow-wrap: break-word;
-    }
-
-
-    .imgContainer img {
-        width: 100%;
-        max-width: 150px;   /* adjust as needed */
-        height: auto;
-        border-radius: 10px;
-        object-fit: cover;
-    }
-
 
     #search{
         background-color: #4a154b;
@@ -242,19 +248,34 @@
         margin-bottom: 20px;
     }
 
-    #filtContainer{
+    #sortPanel{
+        display: flex;
+        color: white;
+        justify-content: center;
+        padding-bottom: 30px;
+    }
+
+    #filtContainer, #sorts{
         display: flex;
         flex-direction: row;
         gap: 30px;
-        padding-left: 10px;
-        
+        align-items: center;
     }
+
     .filtGrp{
         border-radius: 5px;
         padding: 10px;
         color: white;
         background-color: #4a154b;
     }
+
+    .sort{
+        border-radius: 5px;
+        padding: 10px;
+        color: #4a154b;
+        background-color: white;
+    }
+
 
     #noRes{
         display: flex;
@@ -270,5 +291,14 @@
 
     .submitGrp:hover{
         background-color: #E95DA1;
+    }
+
+    .interaction{
+        color: #E95DA1;
+    }
+
+    .interaction:hover{
+        color: #4a154b;
+        cursor: pointer;
     }
 </style>

@@ -1,0 +1,154 @@
+<script setup>
+
+defineProps({
+  user: {
+    type: Object,
+    required: true
+  }
+})
+</script>
+
+<template>
+    <div class = "card">
+        <div class = "imgContainer">
+            <img :src = "user.photo" alt = "profile picture"/>
+        </div>
+
+        <div class = "card-title">
+            <p>{{ user.f_name }} {{ user.l_name }}, {{ user.age }}</p>
+        </div>      
+        <div class = "card-body">
+        
+            <p class = "card-subtitle text-muted">@{{ user.username }}</p>
+            <p>{{ user.gender }}</p>
+            <p>{{ user.location }}</p>
+            <p><i >"{{ user.bio }}"</i></p>
+            <p v-if="user.percentage">{{ user.percentage }}%</p>
+        </div>        
+    
+        <div class="interaction">
+            <slot></slot>
+        </div>
+    </div>
+
+  </template>
+
+<style>
+    .container{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    @media (min-width: 1024px) {
+    .container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+    .card{
+        padding: 20px;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;     
+    }
+
+    .card-body p{
+        margin-bottom: 5px;
+    }
+
+    .card-subtitle{
+        font-size: 14px;
+        padding-top: 0px;
+    }
+    .card-title{
+        font-weight: bold;
+        margin-bottom: -10px;
+    }
+
+    .card-body, .card-title {
+        text-align: center;
+        width: 100%;
+        overflow-wrap: break-word;
+    }
+
+
+    .imgContainer img {
+        width: 100%;
+        max-width: 150px;   /* adjust as needed */
+        height: auto;
+        border-radius: 10px;
+        object-fit: cover;
+    }
+    /*.card{
+        margin-bottom: 20px;
+        padding: 20px;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-width: 100%;
+        height: 300px;
+        box-sizing: border-box;
+        overflow: hidden;     
+    }
+
+    .card-body{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        overflow-y: auto;
+    }
+
+    .card-body p{
+        margin-bottom: 5px;
+    }
+
+    .col-md-8{
+        display: flex;
+        overflow-y: auto;
+    }
+
+    .card-subtitle{
+        font-size: 14px;
+        padding-top: 0px;
+    }
+    .card-title{
+        font-weight: bold;
+        margin-bottom: -10px;
+    }
+
+    .card-body, .card-title {
+        text-align: center;
+        width: 100%;
+        overflow-wrap: break-word;
+    }
+
+    .imgContainer{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .imgContainer img {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        object-fit: cover;
+    }
+
+    .interaction{
+        display: flex;
+        justify-content: center;
+    }*/
+
+</style>

@@ -241,19 +241,21 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
-@app.route('/api/v1/user/search', methods=['GET'])
+@app.route('/api/v1/user/search', methods=['POST'])
 @login_required
 def searchUsers():
-    searchTerm = request.args.get('searchTerm','').strip()
-    filt1 = request.args.get('filter1')
-    filt2 = request.args.get('filter2')
-    filt3 = request.args.get('filter3')
-    filt4 = request.args.get('filter4')
-    sort = request.args.get('sort')
+    content = request.json
+    searchTerm = content['searchTerm']
+    filt1 = content['filter1']
+    filt2 = content['filter2']
+    filt3 = content['filter3']
+    filt4 = content['filter4']
+    sort = content['sort']
+    sort1 = content['sort1']
     
-    options = {"ASC": User.first_name, "DSC": User.first_name.desc(), "Age": Profile.age, "date_created": User.created_at}
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
-    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public").order_by(options.get(sort, User.first_name))
+    options = {"ASC": Profile.date_of_birth.desc() , "DSC": Profile.date_of_birth, "ASC1": User.created_at, "DSC1": User.created_at.desc()}
     
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
@@ -277,48 +279,63 @@ def searchUsers():
         current = current.filter(Profile.location == filt3)
         
     if filt4 and filt4 != "none":
-        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4).distinct()
+    
+    sort_order = []
+    if sort and sort != "none":
+        sort_order.append(options.get(sort))
+        
+    if sort1 and sort1 != "none":
+        sort_order.append(options.get(sort1))
+        
+    current = current.order_by(*sort_order) if sort_order else current
         
     res = current.all()
+        
+        
+    user_bookmarks = [b.Profile_ID for b in db.session.query(Bookmarks.Profile_ID).filter_by(user_ID=current_user.user_ID).all()]
+    
     
     return jsonify([{
+        "profile_ID": prof.profile_ID,
+        "bio": prof.bio,
         "username": use.user_name,
         "f_name": use.first_name,
         "l_name": use.last_name,
         "gender": prof.gender,
         "age": prof.age,
         "location": prof.location,
-        "photo": f"/api/v1/images/{prof.picture_filename}"
-        } for (use, prof) in res]), 200
+        "photo": f"/api/v1/images/{prof.picture_filename}",
+        "bookmarked": prof.profile_ID in user_bookmarks
+        } for (use, prof) in res ]), 200
 
 
-
-
-"""@app.route('/api/v1/user/bookmarks', methods=['GET'])
+@app.route('/api/v1/user/bookmarks', methods=['GET'])
 @login_required
 def getBookmarkedUsers():
 
-    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
+    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Profile.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
 
     return jsonify([{
+        "profile_ID": p.profile_ID,
+        "bio": p.bio,
         "username": u.user_name,
         "f_name": u.first_name,
         "l_name": u.last_name,
         "gender": p.gender,
         "age": p.age,
         "location": p.location,
-        "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200"""
+        "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
 
 @app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
 @login_required
 def deleteBookmarkedUser(profile_ID):
-    delete_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
     if not res:
-        delete_Bookmark = False
+        return jsonify({"message": "Bookmark not found."}), 400
     
-    db.session.delete()
+    db.session.delete(res)
     db.session.commit()
 
     return jsonify({"message": "Bookmark deleted successfully."}), 200
@@ -326,19 +343,17 @@ def deleteBookmarkedUser(profile_ID):
 @app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
 def addBookmarkedUser(profile_ID):
-    make_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
     if res:
-        make_Bookmark = False
+        return jsonify({"message": "Bookmark already exists.",}), 400
     
     bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
     
     db.session.add(bookmark)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark added successfully.",
-                    "makeBookmark": make_Bookmark}), 201
+    return jsonify({"message": "Bookmark added successfully."}), 201
 
 @app.route('/api/v1/matches', methods=['GET'])
 @login_required
@@ -386,18 +401,6 @@ def matching_algorithm():
     matches.sort(key=lambda m: m["score"], reverse=True)
     
     return jsonify(matches),200 
-
-
-
-@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
-@login_required
-def get_bookmarks(user_ID):
-    bookmarks = db.session.execute(
-        db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
-
-    return jsonify(bookmarks = bookmarks), 200
-
-
 
 
 # Used when the User sets their interests right after registering

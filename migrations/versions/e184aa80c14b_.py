@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 940e9a01f594
+Revision ID: e184aa80c14b
 Revises: 
-Create Date: 2026-04-25 11:28:50.917860
+Create Date: 2026-04-27 12:49:45.203207
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '940e9a01f594'
+revision = 'e184aa80c14b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -78,8 +78,7 @@ def upgrade():
     sa.Column('wants_children', postgresql.ENUM('DOES_WANT', 'DOES_NOT', name='children_preference'), nullable=False),
     sa.Column('relationship_type_preference', postgresql.ENUM('CASUAL', 'SERIOUS', name='relationship_preference'), nullable=False),
     sa.Column('age_preference', postgresql.ENUM('Young_Adult', 'Adult', 'MiddleAged', 'Old', name='age_preference'), nullable=False),
-    # Fixed
-    sa.Column('radius_preference', sa.Enum('25', '50', '100', '250', name='location_preference'), nullable=False),
+    sa.Column('radius_preference', sa.Enum('25', '50', '100', '300', name='location_preference'), nullable=False),
     sa.ForeignKeyConstraint(['user_ID'], ['User.user_ID'], ),
     sa.PrimaryKeyConstraint('profile_ID')
     )

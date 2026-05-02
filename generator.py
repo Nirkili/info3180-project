@@ -5,20 +5,29 @@ from app.models import *
  
 
 fake = Faker()
-def genData():
+def gen_users_profiles():
         with app.app_context():
             try:
                 gender_options = ["Male", "Female", "Non-binary"]
                 parishes = ["Kingston", "St. Andrew", "St. Thomas", "Portland", "St. Mary", "St. Ann", "Trelawny", "St. James", "Hanover", "Westmoreland", "St. Elizabeth", "Manchester", "Clarendon", "St. Catherine"]
-                
-                all_interests = Interest.query.all()
+
+                credentials = []
 
                 for i in range(100):
-                    fname = fake.first_name()
+                    gender = random.choice(gender_options)
+
+                    if gender == "Female":fname = fake.first_name_female()
+                    elif gender == 'Male': fname = fake.first_name_male()
+                    else:fname = fake.first_name()
+
                     lname = fake.last_name()
                     username = f"{fname.lower()}{lname.lower()}{i}"
                     email = f"{fname.lower()}.{lname.lower()}{random.randint(1, 999)}@gmail.com"
-                    plain_password = f"pass123"
+                    plain_password = f"pass123{i}"
+                    visibility = random.choices(["Public", "Private"], weights=[80, 20], k=1)[0]
+                    print(f"{fname}, {visibility}, {plain_password}, {email}")
+                    
+                    credentials.append(f"User: {fname} {lname}, {email}, {plain_password}\n")
 
                     new_user = User(
                         first_name=fname,
@@ -34,53 +43,26 @@ def genData():
                     new_profile = Profile(
                         user_ID=new_user.user_ID,
                         date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=60),
-                        gender=random.choice(gender_options),
+                        gender=gender,
                         bio=fake.sentence(nb_words=12),
                         location=random.choice(parishes),
-                        visibility_status=random.choice(["Public", "Private"]),
+                        visibility_status= visibility,
                         picture_filename="default.jpg",
-                        gender_preference=random.choice(gender_options),
+                        gender_preference= random.choice(gender_options),
                         wants_children=random.choice(["Wants Children", "Does Not Want Children"]),
-                        relationship_type_preference=random.choice(["Casual","Serious"])
+                        age_preference=random.choice(['Young_Adult', 'Adult', 'MiddleAged', 'Old']),                        relationship_type_preference=random.choice(["Casual","Serious"]),
+                        radius_preference=random.choice(['25', '50', '100'])
                     )
                     db.session.add(new_profile)
-                    
-                    user_interests = random.sample(all_interests, random.randint(1, 5))
-                    for interest in user_interests:
-                        ui = UserInterest(user_ID=new_user.user_ID, interest_ID=interest.interest_ID)
-                        db.session.add(ui)
 
-                    current_interests = db.session.execute(db.select(Interest.name).join(UserInterest, UserInterest.interest_ID == Interest.interest_ID).where(UserInterest.user_ID == new_user.user_ID)).scalars().all()
-                    
-                    line = f"{fname}, {lname}, {email}, {plain_password}\n Interests: "
-                    
-                    for i in current_interests:
-                        line += f"{i},"
-                    
                 db.session.commit()
-                
-                all_users = User.query.all()
-                all_profiles = Profile.query.all()
-                
-                credentials = []
-                for user in all_users:
-                    # Find this user's specific profile_ID
-                    user_profile = next(p for p in all_profiles if p.user_ID == user.user_ID)
-                    line = f"{user.first_name}, {user.last_name}, {user.email}\n"
-                    
-                    # Now this will actually find the other 99 users
-                    lineAdd = genBookmarks(user.user_ID, user_profile.profile_ID)
-                    credentials.append(line + lineAdd)
-                    
                 print("Successfully added 100 users!")
                 return credentials
-
-                
 
             except Exception as e:
 
                 db.session.rollback()
-                print(f"Transaction failed. Error: {e}")
+                print(f"1Transaction failed. Error: {e}")
             
 def genInterests():
     interests_list = ["Coding", "Investing","Entrepreneurship","Fitness","Meditation","Reading","Learning","Writing","Photography","Tech","Science","Travel","Cooking","Music","Social Media"]
@@ -91,50 +73,83 @@ def genInterests():
                 db.session.add(Interest(name = interest))
             
             db.session.commit()
-        
+            
         except Exception as e:
                 db.session.rollback()
-                print(f"Transaction failed. Error: {e}")
+                print(f"2Transaction failed. Error: {e}")
                 
-def genBookmarks(user_ID, profile_ID):
-    profiles = db.session.execute(db.select(Profile).where(Profile.profile_ID != profile_ID, Profile.user_ID != user_ID)).scalars().all()
+def gen_user_interests(user_ID1):
+    all_interests = Interest.query.all()
+    
+    user_interests = random.sample(all_interests, random.randint(1, 5))
+    for interest in user_interests:
+        ui = UserInterest(user_ID=user_ID1, interest_ID=interest.interest_ID)
+        db.session.add(ui)
+        
+    db.session.commit()
 
-    user_bookmarks = random.sample(profiles, random.randint(1, 20))
+def gen_Likes(user_ID):
+    users = db.session.execute(db.select(User).where(User.user_ID != user_ID)).scalars().all()
+    
+    user_likes = random.sample(users, random.randint(1, 10))
+    
+    for i in user_likes:
+        l = Likes(user_ID=user_ID, liked_user_ID=i.user_ID, type=random.choice(["Like", "Dislike", "Pass"]))
+        db.session.add(l)  
+    db.session.commit()
+    
+"""def assign_matches(user_ID):
+    all_users = db.session.execute(db.select(Likes).where(Likes.user_ID != user_ID)).scalars().all()
+    
+    for user in all_users:
+        
+    likes_you = db.session.execute(db.select(Match).where(Match.match_user_ID == user_ID, )).scalars().all()
+    
+    you_like = db.session.execute(db.select(Match).where(Match.user_ID == user_ID)).scalars().all()"""
+    
+   
+    
+def genBookmarks(user_ID, profile):
+    print(f"Generating bookmarks for user_ID: {user_ID}")
+    profiles = db.session.execute(db.select(Profile).where(Profile.profile_ID != profile.profile_ID, Profile.user_ID != user_ID)).scalars().all()
 
-    lineAdd = "Bookmarked: "
-
+    user_bookmarks = random.sample(profiles, random.randint(1, 10))
+    print(f"User {user_ID} will bookmark profile IDs: {[p.profile_ID for p in user_bookmarks]}")
     for i in user_bookmarks:
         b = Bookmarks(user_ID=user_ID, Profile_ID= i.profile_ID)
         db.session.add(b)
-
-    # Get names of bookmarked users
-    booked = db.session.execute(
-        db.select(User.first_name, User.last_name)
-        .join(Profile, Profile.user_ID == User.user_ID)
-        .join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID)
-        .where(Bookmarks.user_ID == user_ID)
-    ).all()
-
-    for first, last in booked:
-        lineAdd += f"{first} {last}, "
-
-    lineAdd += "\n"
-    return lineAdd
-        
+    db.session.commit()
+    
+def write_to_file(credentials, filename):
+    with open(filename, 'w') as f:
+        with app.app_context():
+            f.write("Generated User Credentials:\n")
+            
+            users = User.query.all()
+            j=0
+            for i in users:
+                f.write(f"User {i.user_ID}: {credentials[j]}\n")
+                j+=1
+                
 
 if __name__ == "__main__":
     with app.app_context():
         db.session.execute(db.text('TRUNCATE TABLE "User", "Profile", "UserInterest", "Interest", "Bookmarks" RESTART IDENTITY CASCADE;'))
         db.session.commit()
     genInterests()
-    users = genData()
-
-    # Write to file
-
-    with open('credentials.txt', "w", encoding="utf-8") as f:
-        for i in users:
-            f.write(i)
-            
+    print("Interests generated successfully.")
+    users = gen_users_profiles()
+    print("Users and profiles generated successfully.")
+    
+    with app.app_context():
+        users1 = db.session.execute(db.select(User)).scalars().all()
         
-    print("created file")
+        for user in users1:   
+            gen_user_interests(user.user_ID)
+            genBookmarks(user.user_ID, user.profile)
+            gen_Likes(user.user_ID)
+    
+    write_to_file(users, "credentials.txt")
+    print(f"Generated interests, likes, and bookmarks for users")
+
 
