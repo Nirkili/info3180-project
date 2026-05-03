@@ -241,9 +241,11 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
+#Endpoint is useed to search for other users. It filters by the search term and the filters provided by the user. It also sorts the results based on the user's preferences.
 @app.route('/api/v1/user/search', methods=['POST'])
 @login_required
 def searchUsers():
+    #Get search term and filters from the request body
     content = request.json
     searchTerm = content['searchTerm']
     filt1 = content['filter1']
@@ -253,10 +255,13 @@ def searchUsers():
     sort = content['sort']
     sort1 = content['sort1']
     
+    #Initial query to get all public profiles and their associated user information
     current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
+    # Mapping of sort options to their corresponding SQLAlchemy order_by expressions
     options = {"ASC": Profile.date_of_birth.desc() , "DSC": Profile.date_of_birth, "ASC1": User.created_at, "DSC1": User.created_at.desc()}
     
+    #Applies filters to the query based on the user's input. Each filter is optional, and if a filter is not provided or set to "none", it will be ignored in the filtering process.
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
         
@@ -281,6 +286,7 @@ def searchUsers():
     if filt4 and filt4 != "none":
         current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4).distinct()
     
+    #Determines the sorting order of the users searched for.
     sort_order = []
     if sort and sort != "none":
         sort_order.append(options.get(sort))
@@ -289,10 +295,11 @@ def searchUsers():
         sort_order.append(options.get(sort1))
         
     current = current.order_by(*sort_order) if sort_order else current
-        
+    
+    #Final query to convert results to a list of dictionaries.
     res = current.all()
         
-        
+    #Get list of Profile_IDs that the current user has bookmarked to determine which profiles in the search results are bookmarked by the user.    
     user_bookmarks = [b.Profile_ID for b in db.session.query(Bookmarks.Profile_ID).filter_by(user_ID=current_user.user_ID).all()]
     
     
@@ -309,11 +316,12 @@ def searchUsers():
         "bookmarked": prof.profile_ID in user_bookmarks
         } for (use, prof) in res ]), 200
 
-
+#Function gets all bookmarked profiles for the current user and returns them as a list of dictionaries.
 @app.route('/api/v1/user/bookmarks', methods=['GET'])
 @login_required
 def getBookmarkedUsers():
 
+    #Query to get all bookmarked profiles for current user.
     bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Profile.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
 
     return jsonify([{
@@ -327,29 +335,38 @@ def getBookmarkedUsers():
         "location": p.location,
         "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
 
+#Functions handles deleting a bookmarked profile. Accepts the profileID of the user to be removed from bookmarks.
 @app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
 @login_required
 def deleteBookmarkedUser(profile_ID):
+    #Query to get profile information of the bookmarked user.
     res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If not found, returns an error message.
     if not res:
         return jsonify({"message": "Bookmark not found."}), 400
     
+    #Deletes the bookmark from the database and commits the change.
     db.session.delete(res)
     db.session.commit()
 
     return jsonify({"message": "Bookmark deleted successfully."}), 200
 
+#Function handles adding a bookmarked profile. Accepts the profileID of the user to be added to bookmarks.
 @app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
 def addBookmarkedUser(profile_ID):
+    #Query to get profile information of the bookmarked user.
     res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If the bookmark already exists, returns an error message.
     if res:
         return jsonify({"message": "Bookmark already exists.",}), 400
     
+    #Creates bookmark of profile information.
     bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
     
+    #Adds the bookmark to the database and commits the change.
     db.session.add(bookmark)
     db.session.commit()
 
@@ -427,7 +444,6 @@ def get_csrf():
 
 @app.route('/api/v1/images/<filename>')
 def uploads(filename):
-    #upload_folder = os.path.join(os.getcwd(), 'uploads')
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -438,6 +454,7 @@ def unauthorized():
 
 ###
 # The functions below should be applicable to all Flask apps.
+#These are functions forked from the repository that have not been changed.
 ###
 
 

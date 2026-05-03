@@ -2,9 +2,11 @@
   <div id = "heading">
     <h1>Bookmarked Profiles</h1>
   </div>
+  <!--Loops through the bookmarked profiles and displays them-->
   <div id = "bookContainer" v-if="profiles.length > 0">
       <div v-for="profile in profiles" :key="profile.profile_ID">
         <ProfileCard :user = "profile">
+          <!--Adds option to remove from bookmarks-->
           <a @click="removebookmark(user.profile_ID)"><i class="bi bi-bookmark-fill">Remove from Bookmarks</i></a>
         </ProfileCard>
       </div>
@@ -15,23 +17,28 @@
 </template>
 
 <script setup>
+  //Imports the ref and onMounted functions from Vue and the ProfileCard component.
   import {ref, onMounted} from 'vue';
   import ProfileCard from '../components/ProfileCard.vue';
 
   const profiles = ref([]);
   const csrf_token = ref('');
 
+  //When the component is mounted, the CSRF token is retrieved and stored first and then fetchBookmarked function is called to display all bookmarked profiles.
   onMounted(async () =>{
     await getCsrfToken();
     fetchBookmarked();
   })
 
+  //Function to remove a profile from bookmarks. Accepts the profileID of the user to be removed from bookmarks.
   function removebookmark(profile_ID){
 
+    //Confirmation prompt to confirm if the user really wants to remove the bookmark.
     if (!window.confirm("Are you sure you want to remove this bookmark?")) {
       return; 
     }
 
+    //Deletes the bookmark from the database and then calls fetchBookmarked to refresh the list of bookmarked profiles displayed.
     fetch(`/api/v1/user/bookmarks/${profile_ID}`, {
         method: 'DELETE',
         headers:{'X-CSRFToken': csrf_token.value,
@@ -49,7 +56,7 @@
 
     };
   
-
+  //Function to fetch the list of bookmarked profiles from the server and store it in the profiles variable.
   function fetchBookmarked(){
     fetch('/api/v1/user/bookmarks', {
         method: 'GET'
@@ -61,8 +68,9 @@
     .catch(function (error) { 
         console.log(error); 
     }); 
-  }
+  };
 
+  //Function to get the CSRF token from the server which is required to make POST and DELETE requests. The token is stored in the csrf_token variable.
   function getCsrfToken() {
     return fetch('/api/v1/csrf-token')
       .then((response) => response.json())

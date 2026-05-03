@@ -1,12 +1,14 @@
 <template>
     <div id = "searchContainer">
+        <!--Search Bar and all filters that can be used to search for a user.-->
         <form method = "GET" action = "{{url_for('search_course')}}" @submit.prevent="searchUsers">
+            <!--Search Bar-->
             <div class="input-group mb-4 search-users">
                 <div class="input-group mb-4">
                     <input type="text" class = "form-control" name = "searchTerm" placeholder="Search users...." v-model.trim= "searchTerm">
                     <button type = "submit" id = "search" class="btn btn-outline-secondary"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
-
+                <!--Filters for age range, interests, gender and location-->
                 <div id = "filtContainer">
                     <select v-model = "filter1" name = "filter1" class=" filtGrp">
                         <option value = "none" disabled selected hidden>Age Range</option>
@@ -61,11 +63,14 @@
                     </select>
                 </div>
             </div>
-
+            
+            <!--Button to clear all filters and sorts applied.-->
             <button class = "btn btn-custom submitGrp" type = "button" @click = clearFilt ><i>Clear All Filters</i></button>
 
         </form>
     </div>
+
+    <!--Sort Panel for age and date created if any user loads.-->
     <div id = "sortPanel" v-if ="users.length > 0">
         <div id = "sorts">
             <label for = "sort">Sort By:</label>
@@ -83,9 +88,11 @@
         </div>
     </div>
 
+    <!--Displays the search results if any users are found. If not, displays a message that no users match the search request.-->
     <div class = "searchRes" v-if ="users.length > 0">
         <div v-for= "user in users" :key = user.user_ID>
             <ProfileCard :user = "user">
+                <!--Checks if users is bookmarked or not by the current user and provides appropriate action.-->
                 <a v-if="user.bookmarked"  @click="removebookmark(user.profile_ID)"><i class="bi bi-bookmark-fill">Remove from Bookmarks</i></a>
                 <a v-else @click="addbookmark(user.profile_ID)"><i class="bi bi-bookmark">Add to Bookmarks</i></a>
             </ProfileCard>
@@ -99,7 +106,7 @@
 </template>
 
 <script setup>
-
+    //Import lifecycle hook and ref from Vue and the ProfileCard component.
     import { ref, onMounted } from 'vue';
     import ProfileCard from '../components/ProfileCard.vue';
 
@@ -113,7 +120,7 @@
     const users = ref([]);
     const csrf_token = ref("");
 
-
+    //Function sends a POST request to the server with the search term, filters and sorts applied by the user. The server then returns a list of users that match the search request which is stored in the users variable.
     function searchUsers(){
         fetch(`/api/v1/user/search`,{
             method: 'POST',
@@ -139,6 +146,7 @@
         }); 
     }
 
+    //Function to add a profile to bookmarks. Accepts the profileID of the user to be bookmarked.
     function addbookmark(profile_ID){
         fetch(`/api/v1/user/bookmarks/${profile_ID}`,{
             method: 'POST',
@@ -156,29 +164,33 @@
         }); 
     }
 
+    //Function to remove a profile from bookmarks. Accepts the profileID of the user to be removed from bookmarks.
     function removebookmark(profile_ID){
 
-    if (!window.confirm("Are you sure you want to remove this bookmark?")) {
-      return; 
-    }
+        //Confirmation prompt to confirm if the user wants to remove the bookmark. Returns if the user selects cancel.
+        if (!window.confirm("Are you sure you want to remove this bookmark?")) {
+        return; 
+        }
 
-    fetch(`/api/v1/user/bookmarks/${profile_ID}`, {
-        method: 'DELETE',
-        headers:{'X-CSRFToken': csrf_token.value,
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => response.json())
-    .then (function (data) { 
-        console.log(data);
-        searchUsers();
-    }) 
-    .catch(function (error) { 
-        console.log(error); 
-    }); 
+        //If the user confirms, sends a DELETE request to the server to remove the bookmark. After the bookmark is removed, the search results are refreshed.
+        fetch(`/api/v1/user/bookmarks/${profile_ID}`, {
+            method: 'DELETE',
+            headers:{'X-CSRFToken': csrf_token.value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then (function (data) { 
+            console.log(data);
+            searchUsers();
+        }) 
+        .catch(function (error) { 
+            console.log(error); 
+        }); 
 
-    };
+        };
     
+    //Function to clear all filters and sorts applied and refreshes the search results.
     function clearFilt(){
         searchTerm.value = "";
         filter1.value = "none";
@@ -189,20 +201,22 @@
         sort1.value = "none";
 
         searchUsers();
-    }
+    };
 
+    //Function to get the CSRF token from the server which is required to make POST and DELETE requests. The token is stored in the csrf_token variable.
     function getCsrfToken() {
-    return fetch('/api/v1/csrf-token')
-      .then((response) => response.json())
-      .then((data) => {
+        return fetch('/api/v1/csrf-token')
+        .then((response) => response.json())
+        .then((data) => {
 
-        csrf_token.value = data.csrf_token
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-    }
+            csrf_token.value = data.csrf_token
+        })
+        .catch((error) => {
+            console.log(error)
+        });
+    };
 
+    //When the component is mounted, the CSRF token is retrieved and stored first and then searchUsers function is called to display all users.
     onMounted(async () => {
         await getCsrfToken();
         searchUsers();
