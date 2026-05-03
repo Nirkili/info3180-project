@@ -7,7 +7,7 @@
       <div v-for="profile in profiles" :key="profile.profile_ID">
         <ProfileCard :user = "profile">
           <!--Adds option to remove from bookmarks-->
-          <a @click="removebookmark(user.profile_ID)"><i class="bi bi-bookmark-fill">Remove from Bookmarks</i></a>
+          <a @click="removebookmark(profile.profile_ID)"><i class="bi bi-bookmark-fill">Remove from Bookmarks</i></a>
         </ProfileCard>
       </div>
   </div>
