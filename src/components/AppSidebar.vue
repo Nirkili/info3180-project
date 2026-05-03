@@ -25,6 +25,9 @@
         <li>
           <RouterLink to="/bookmarks" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
         </li>
+        <li>
+          <RouterLink to="/chats" class=""><i class="fa-solid fa-message"></i>Chats</RouterLink>
+        </li>
       </ul>
 
     </div>
