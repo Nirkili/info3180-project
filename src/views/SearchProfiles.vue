@@ -73,7 +73,7 @@
     <!--Sort Panel for age and date created if any user loads.-->
     <div id = "sortPanel" v-if ="users.length > 0">
         <div id = "sorts">
-            <label for = "sort">Sort By:</label>
+            <span for = "sort">Sort By:</span>
             <select v-model = "sort" name = "sort" class="sort" @change="searchUsers">
                 <option value="none" disabled selected hidden>Age</option>
                 <option value = "ASC">Ascending</option>
@@ -82,8 +82,8 @@
 
             <select v-model = "sort1" name = "sort1" class="sort" @change="searchUsers">
                 <option value="none" disabled selected hidden>Date Created</option>
-                <option value = "ASC1">Ascending</option>
-                <option value = "DSC1">Descending</option>
+                <option value = "ASC1">Earliest</option>
+                <option value = "DSC1">Latest</option>
             </select>
         </div>
     </div>

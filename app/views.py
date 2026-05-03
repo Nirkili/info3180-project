@@ -258,7 +258,9 @@ def searchUsers():
     #Initial query to get all public profiles and their associated user information
     current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
-    # Mapping of sort options to their corresponding SQLAlchemy order_by expressions
+    current = current.filter(User.user_ID != current_user.user_ID)
+    
+    # Maps of sort options to sort option
     options = {"ASC": Profile.date_of_birth.desc() , "DSC": Profile.date_of_birth, "ASC1": User.created_at, "DSC1": User.created_at.desc()}
     
     #Applies filters to the query based on the user's input. Each filter is optional, and if a filter is not provided or set to "none", it will be ignored in the filtering process.
@@ -288,11 +290,11 @@ def searchUsers():
     
     #Determines the sorting order of the users searched for.
     sort_order = []
-    if sort and sort != "none":
-        sort_order.append(options.get(sort))
-        
     if sort1 and sort1 != "none":
         sort_order.append(options.get(sort1))
+        
+    if sort and sort != "none":
+        sort_order.append(options.get(sort))
         
     current = current.order_by(*sort_order) if sort_order else current
     

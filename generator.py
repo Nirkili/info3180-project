@@ -24,17 +24,18 @@ def gen_users_profiles():
                     username = f"{fname.lower()}{lname.lower()}{i}"
                     email = f"{fname.lower()}.{lname.lower()}{random.randint(1, 999)}@gmail.com"
                     plain_password = f"pass123{i}"
+                    created_on = fake.date_time_this_year()
                     visibility = random.choices(["Public", "Private"], weights=[80, 20], k=1)[0]
-                    print(f"{fname}, {visibility}, {plain_password}, {email}")
-                    
-                    credentials.append(f"User: {fname} {lname}, {email}, {plain_password}\n")
+
+                    credentials.append(f"User: {fname} {lname}, {email}, {plain_password}, {created_on}\n")
 
                     new_user = User(
                         first_name=fname,
                         last_name=lname,
                         user_name= username,
                         email=email,
-                        password = bcrypt.generate_password_hash(plain_password).decode('utf-8')
+                        password = bcrypt.generate_password_hash(plain_password).decode('utf-8'),
+                        created_at=created_on
                     )
                     
                     db.session.add(new_user)
@@ -128,7 +129,7 @@ def write_to_file(credentials, filename):
             users = User.query.all()
             j=0
             for i in users:
-                f.write(f"User {i.user_ID}: {credentials[j]}\n")
+                f.write(f"{i.user_ID}: {credentials[j]}\n")
                 j+=1
                 
 
