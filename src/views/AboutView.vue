@@ -1,7 +1,9 @@
 <template>
   <div class="about container">
     <h2>About</h2>
-    <p>This is an about page.</p>
+    <div>
+      <p>DriftDater is a monumental dating app created to revolutionize the dating space in Jamaica.</p>
+    </div>
   </div>
 </template>
 

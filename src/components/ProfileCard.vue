@@ -33,7 +33,7 @@ defineProps({
 
   </template>
 
-<style>
+<style scoped>
     .container{
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -86,69 +86,6 @@ defineProps({
         border-radius: 10px;
         object-fit: cover;
     }
-    /*.card{
-        margin-bottom: 20px;
-        padding: 20px;
-        align-items: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        max-width: 100%;
-        height: 300px;
-        box-sizing: border-box;
-        overflow: hidden;     
-    }
 
-    .card-body{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        overflow-y: auto;
-    }
-
-    .card-body p{
-        margin-bottom: 5px;
-    }
-
-    .col-md-8{
-        display: flex;
-        overflow-y: auto;
-    }
-
-    .card-subtitle{
-        font-size: 14px;
-        padding-top: 0px;
-    }
-    .card-title{
-        font-weight: bold;
-        margin-bottom: -10px;
-    }
-
-    .card-body, .card-title {
-        text-align: center;
-        width: 100%;
-        overflow-wrap: break-word;
-    }
-
-    .imgContainer{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 10px;
-    }
-
-    .imgContainer img {
-        width: 100%;
-        height: auto;
-        border-radius: 10px;
-        object-fit: cover;
-    }
-
-    .interaction{
-        display: flex;
-        justify-content: center;
-    }*/
 
 </style>

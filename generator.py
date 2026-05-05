@@ -51,8 +51,9 @@ def gen_users_profiles():
                         picture_filename="default.jpg",
                         gender_preference= random.choice(gender_options),
                         wants_children=random.choice(["Wants Children", "Does Not Want Children"]),
-                        age_preference=random.choice(['Young_Adult', 'Adult', 'MiddleAged', 'Old']),                        relationship_type_preference=random.choice(["Casual","Serious"]),
-                        radius_preference=random.choice(['25', '50', '100'])
+                        age_preference=random.choice(['18-24', '25-29', '30-40', '>40']),                        
+                        relationship_type_preference=random.choice(["Casual","Serious"]),
+                        radius_preference=random.choice(['25', '50', '100', '250'])
                     )
                     db.session.add(new_profile)
 
@@ -71,7 +72,7 @@ def genInterests():
     with app.app_context():
         try:
             for interest in interests_list:
-                db.session.add(Interest(name = interest))
+                db.session.add(Interest(interest_name = interest))
             
             db.session.commit()
             
@@ -90,25 +91,45 @@ def gen_user_interests(user_ID1):
     db.session.commit()
 
 def gen_Likes(user_ID):
+    match = False
+
     users = db.session.execute(db.select(User).where(User.user_ID != user_ID)).scalars().all()
     
     user_likes = random.sample(users, random.randint(1, 10))
     
     for i in user_likes:
-        l = Likes(user_ID=user_ID, liked_user_ID=i.user_ID, type=random.choice(["Like", "Dislike", "Pass"]))
-        db.session.add(l)  
+        l = Interaction(user_ID=user_ID, other_user_ID=i.user_ID, type=random.choice(["Like", "Pass"]))
+        db.session.add(l) 
+
+        #Check to see if there is a match
+        mutual_like = db.session.execute(db.select(Interaction).where(Interaction.user_ID == user_ID, Interaction.other_user_ID == user_ID, Interaction.type == "Like")).scalar_one_or_none()
+
+        if(mutual_like):
+            existing_match = db.session.execute(db.select(Match).where(
+                db.or_(
+                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == user_ID),
+                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == user_ID))
+            )).scalar_one_or_none()
+
+            # Else make a new entry in the Match table
+            if not existing_match:
+                match = True
+                new_match = Match(
+                    user_ID = user_ID,
+                    match_user_ID = user_ID
+                )
+
+                new_chat = Chat(
+                    user1_ID=user_ID,
+                    user2_ID=user_ID)
+                
+                db.session.add(new_match)
+                db.session.add(new_chat)
+
+         
     db.session.commit()
-    
-"""def assign_matches(user_ID):
-    all_users = db.session.execute(db.select(Likes).where(Likes.user_ID != user_ID)).scalars().all()
-    
-    for user in all_users:
-        
-    likes_you = db.session.execute(db.select(Match).where(Match.match_user_ID == user_ID, )).scalars().all()
-    
-    you_like = db.session.execute(db.select(Match).where(Match.user_ID == user_ID)).scalars().all()"""
-    
-   
+
+    return match
     
 def genBookmarks(user_ID, profile):
     print(f"Generating bookmarks for user_ID: {user_ID}")
@@ -125,12 +146,8 @@ def write_to_file(credentials, filename):
     with open(filename, 'w') as f:
         with app.app_context():
             f.write("Generated User Credentials:\n")
-            
-            users = User.query.all()
-            j=0
-            for i in users:
-                f.write(f"{i.user_ID}: {credentials[j]}\n")
-                j+=1
+            for i in credentials:
+                f.write(i)
                 
 
 if __name__ == "__main__":
@@ -139,7 +156,8 @@ if __name__ == "__main__":
         db.session.commit()
     genInterests()
     print("Interests generated successfully.")
-    users = gen_users_profiles()
+    credentials = gen_users_profiles()
+    matches = []
     print("Users and profiles generated successfully.")
     
     with app.app_context():
@@ -148,9 +166,13 @@ if __name__ == "__main__":
         for user in users1:   
             gen_user_interests(user.user_ID)
             genBookmarks(user.user_ID, user.profile)
-            gen_Likes(user.user_ID)
+            has_match = gen_Likes(user.user_ID)
+
+
+            matches.append((f"{user.first_name} {user.last_name}, has Match = {has_match}\n"))
     
-    write_to_file(users, "credentials.txt")
+    write_to_file(credentials, "credentials.txt")
+    write_to_file(matches, 'has_match.txt')
     print(f"Generated interests, likes, and bookmarks for users")
 
 

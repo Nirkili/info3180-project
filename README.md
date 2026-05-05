@@ -96,9 +96,29 @@ get_csrf() – Uses the `GET` method and generates and returns a CSRF token requ
 
 uploads(filename) – Uses the `GET` method and accepts a filename to be retrieved as a parameter. The requested image is returned if it exists along with status code 200 if it can be found.
 
+
+17. ROUTE - `/api/v1/home/<int:user_ID>`
+
+rate_user(user_ID) - Accepts user to be liked as a parameter. If that user is not found, returns an error message 'Profile not found.' and status code 404. If the user was already interacted with, a message "You have already interacted with this user" is shown with error code 400. If the current user passed the user associated with the ID in the parameter, the message "Action recorded" is sent, matched is returned as False and returned along with status code 201. If the like was not mutual, the message "Action recorded" is sent, matched is returned as False and returned along with status code 201. If there was a mutual like, the message "You have a match!" is sent, matched is set to True and is returned along with status code 201.
+
+18. ROUTE - `/api/v1/matches`
+
+get_matches() - This endpoint accepts no parameters. Get matches for current users. Returns user and profile information such as userID, username, name, age, bio, location and  profile picture along with status code 200. If no matches can be found, the message "No Matches" is returned along with status code 404.
+
+19. ROUTE - `/api/v1/chats/<int:chat_ID>`
+
+get_chat_history(chat_ID) - Accepts chatID of chat to get messages for. Function returns the message list along with status code 200.
+
+20. ROUTE - `/api/v1/chats`
+
+get_chats()- This endpoint accepts no parameters. Gets all chats for the current user and returns the chat list along with status code 200.
+
 --------------------------------------
 ### Helper Functions
 --------------------------------------
+send_message(data)- Saves message to database using socket programming.
+
+join(data) - Enables a user to connect to a chat using socket programming.
 
 unauthorized() - Sends an unauthorized message and status code 401.
 
@@ -115,4 +135,3 @@ Accuracy of Matching Algorithm - The algorithm is only as accurate as the data p
 Responsiveness of App to Different Screens - Due to the time constraint, the performance of the app with regards to mobbile of television view is unknown and is known to work with standard laptop screens.
 
 Offline Access - DriftDater has been built as an online web application and so features are not guaranteed to work with the absence of a network connection.
-

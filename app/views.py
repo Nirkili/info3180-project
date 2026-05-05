@@ -6,6 +6,8 @@ This file creates your application.
 """
 
 from . import app, db, bcrypt
+from app import socketio
+from flask_socketio import emit, join_room
 from flask import render_template, request, jsonify, send_file, redirect, url_for, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
@@ -130,6 +132,7 @@ def login():
 @app.route('/api/v1/auth/logout', methods=['POST'])
 @login_required
 def logout():
+    print("HELLOOO")
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
 
@@ -242,9 +245,9 @@ def get_profile(profile_id):
     return jsonify({'error': 'Profile not found'}), 404
 
 #Endpoint is useed to search for other users. It filters by the search term and the filters provided by the user. It also sorts the results based on the user's preferences.
-@app.route('/api/v1/user/search', methods=['POST'])
+@app.route('/api/v1/search', methods=['POST'])
 @login_required
-def searchUsers():
+def search_users():
     #Get search term and filters from the request body
     content = request.json
     searchTerm = content['searchTerm']
@@ -318,10 +321,13 @@ def searchUsers():
         "bookmarked": prof.profile_ID in user_bookmarks
         } for (use, prof) in res ]), 200
 
+
+
+
 #Function gets all bookmarked profiles for the current user and returns them as a list of dictionaries.
-@app.route('/api/v1/user/bookmarks', methods=['GET'])
+@app.route('/api/v1/bookmarks', methods=['GET'])
 @login_required
-def getBookmarkedUsers():
+def get_bookmarked_users():
 
     #Query to get all bookmarked profiles for current user.
     bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Profile.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
@@ -338,32 +344,32 @@ def getBookmarkedUsers():
         "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
 
 #Functions handles deleting a bookmarked profile. Accepts the profileID of the user to be removed from bookmarks.
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['DELETE'])
 @login_required
-def deleteBookmarkedUser(profile_ID):
+def delete_bookmarked_user(profile_ID):
     #Query to get profile information of the bookmarked user.
     res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
     #If not found, returns an error message.
     if not res:
-        return jsonify({"message": "Bookmark not found."}), 400
+        return jsonify({"message": "Bookmark not found.", "removed": False}), 400
     
     #Deletes the bookmark from the database and commits the change.
     db.session.delete(res)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark deleted successfully."}), 200
+    return jsonify({"message": "Bookmark deleted successfully.", "removed": True}), 200
 
 #Function handles adding a bookmarked profile. Accepts the profileID of the user to be added to bookmarks.
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
-def addBookmarkedUser(profile_ID):
+def add_bookmarked_user(profile_ID):
     #Query to get profile information of the bookmarked user.
     res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
     #If the bookmark already exists, returns an error message.
     if res:
-        return jsonify({"message": "Bookmark already exists.",}), 400
+        return jsonify({"message": "Bookmark already exists.", "added": False}), 400
     
     #Creates bookmark of profile information.
     bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
@@ -372,9 +378,11 @@ def addBookmarkedUser(profile_ID):
     db.session.add(bookmark)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark added successfully."}), 201
+    return jsonify({"message": "Bookmark added successfully.", "added": True}), 201
 
-@app.route('/api/v1/matches', methods=['GET'])
+
+
+@app.route('/api/v1/home', methods=['GET'])
 @login_required
 def matching_algorithm():
     # Retrieve the current user's profile and interests
@@ -382,7 +390,7 @@ def matching_algorithm():
     current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == current_user.user_ID)).scalars().all()
 
     # Remove profiles already liked/disliked
-    removed_IDs = db.session.execute(db.select(Likes.liked_user_ID).where (Likes.user_ID == current_user.user_ID)).scalars().all()
+    removed_IDs = db.session.execute(db.select(Interaction.other_user_ID).where (Interaction.user_ID == current_user.user_ID)).scalars().all()
 
     # Get all other users
     potential_matches = db.session.execute(
@@ -416,10 +424,225 @@ def matching_algorithm():
                 "score": score,
                 "percentage": round(((score/11.5) * 100), 2) # FIX THIS
             })
+        
+    sort = request.args.get('sort', 'desc')
 
-    matches.sort(key=lambda m: m["score"], reverse=True)
+    matches.sort(key=lambda m: m["score"], reverse=(sort == 'desc'))
     
     return jsonify(matches),200 
+
+
+@app.route('/api/v1/home/<int:user_ID>', methods=['POST'])
+@login_required
+def rate_user(user_ID):
+    # Check that target user exists
+    target = db.session.execute(db.select(User).where(User.user_ID == user_ID)).scalar_one_or_none()
+    if not target:
+         return jsonify({'error': 'Profile not found'}), 404
+    
+    # Ensure that current_user has not already rated the target
+    has_interacted = db.session.execute(db.select(Interaction).where(Interaction.user_ID == current_user.user_ID, Interaction.other_user_ID == user_ID)).scalar_one_or_none()
+
+    if has_interacted:
+        return jsonify({
+                'message': 'You have already interacted with this user'
+            }), 400
+    
+    # Else add the interaction to the Interaction table
+    type = request.json.get('type')
+
+    like = Interaction(
+            user_ID = current_user.user_ID,
+            other_user_ID = user_ID,
+            type = type
+        )
+    db.session.add(like)
+    db.session.commit()
+
+    # If DISLIKE/PASS, do not check for a match
+    if type == 'Pass':
+        return jsonify({"message": "Action recorded", "matched": False}), 201
+    
+    # If LIKE check to see if the target user has liked the current user
+    mutual_like = db.session.execute(db.select(Interaction).where(Interaction.user_ID == user_ID, Interaction.other_user_ID == current_user.user_ID, Interaction.type == 'Like')).scalar_one_or_none()
+
+    # If they have not interacted or the DISLIKE/PASS return
+    if not mutual_like:
+        return jsonify({"message": "Action recorded", "matched": False}), 201
+    
+    # Else if a mutal like exists make an entry in the match table
+
+    # But first check if the match exists
+    existing_match = db.session.execute(db.select(Match).where(
+                db.or_(
+                    db.and_(Match.user_ID == current_user.user_ID, Match.match_user_ID == user_ID),
+                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == current_user.user_ID))
+            )).scalar_one_or_none()
+
+    # Else make a new entry in the Match table
+    if not existing_match:
+        new_match = Match(
+            user_ID = current_user.user_ID,
+            match_user_ID = user_ID
+        )
+
+        new_chat = Chat(
+            user1_ID=current_user.user_ID,
+            user2_ID=user_ID)
+        
+        db.session.add(new_match)
+        db.session.add(new_chat)
+        db.session.commit()
+
+
+    # And add an entry to the chat table
+        
+
+    return jsonify({ 'success': f'You have a match!', "matched":True}), 201
+
+
+
+
+
+
+@app.route('/api/v1/matches', methods=['GET'])
+@login_required
+def get_matches():
+    print(f"current_user_ID: {current_user.user_ID}")
+    
+    # Get all rows that include the current user's ID
+    matches = db.session.execute(db.select(Match).where(
+        db.or_(
+            Match.user_ID == current_user.user_ID,
+            Match.match_user_ID == current_user.user_ID
+        )
+    )).scalars().all()
+    print(f"matches: {matches}")
+
+    other_users = []
+
+    if matches:
+        for match in matches:
+            if match.user_ID == current_user.user_ID:
+                other_users.append(match.match_user_ID)
+            else:
+                other_users.append(match.user_ID)
+        
+        # Get Profiles
+        print(f"other_users: {other_users}")
+
+        profiles = []
+
+        for user in other_users:
+            profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == User.user_ID).where(User.user_ID == user)).first()
+            user_obj, profile_obj = profile
+
+            profiles.append((user_obj, profile_obj))
+
+        return jsonify([{
+            "user_ID": user_obj.user_ID,
+            "username": user_obj.user_name,
+            "f_name": user_obj.first_name,
+            "l_name": user_obj.last_name,
+            "age": profile_obj.age,
+            "bio": profile_obj.bio,
+            "location": profile_obj.location,
+            "photo": f"/api/v1/images/{profile_obj.picture_filename}"
+        } for user_obj, profile_obj in profiles]), 200
+    
+    else:
+         return jsonify({'message': 'No Matches'}), 404
+
+
+
+# CHAT ROUTES
+
+
+@app.route('/api/v1/chats/<int:chat_ID>', methods=['GET'])
+@login_required
+def get_chat_history(chat_ID):
+    messages = Message.query.filter_by(chat_ID=chat_ID).order_by(Message.timestamp.asc()).all()
+    
+    msg_lst = []
+
+    for m in messages:
+        msg_lst.append({
+            'id': m.message_ID,
+            'sender_ID': m.sender_ID,
+            'content': m.content,
+            'timestamp': m.timestamp.strftime('%H:%M')
+        })
+
+    return jsonify({'messages': msg_lst}), 200
+
+
+
+@socketio.on('join')
+def join(data):
+    room= data['room']
+    join_room(room)
+    emit('status', {'message': 'Connected to chat'}, room=room)  
+
+
+# Send a mesage
+@socketio.on('send_message')
+def send_message(data):
+    # Save new message to db
+    message = Message(
+        chat_ID = data['chat_ID'],
+        sender_ID = data['sender_ID'],
+        content = data['content'] 
+    )
+
+    db.session.add(message)
+    db.session.commit()
+
+    # Send message to chat room
+    emit('receive_message',{
+        'sender_ID': data['sender_ID'],
+        'content': data['content'],
+        'timestamp': message.timestamp.strftime('%H:%M'),
+        'room': data['room']
+    }, room = data['room'])
+
+
+
+# Route for loading all chats
+@app.route('/api/v1/chats', methods=['GET'])
+@login_required
+def get_chats():
+
+    # Find all chats where that include the current user's ID
+    chats = Chat.query.filter(
+        (Chat.user1_ID == current_user.user_ID) |
+        (Chat.user2_ID == current_user.user_ID)
+    ).all()
+
+    chat_lst = []
+
+    for c in chats:
+        # Get the other user
+        matched_user_ID = c.user2_ID if c.user1_ID == current_user.user_ID else c.user1_ID
+        matched_user = User.query.get(matched_user_ID)
+        matched_profile = Profile.query.filter_by(user_ID = matched_user_ID).first()
+
+
+        # Get the last message to display on closed chat
+        last_msg = Message.query.filter_by(chat_ID = c.chat_ID).order_by(Message.timestamp.desc()).first()
+
+        chat_lst.append({
+            'chat_ID':c.chat_ID,
+            'matched_user_ID': matched_user_ID,
+            'matched_user_name': f"{matched_user.first_name} {matched_user.last_name}",
+            'photo': matched_profile.picture_filename,
+            'last_msg': last_msg.content if last_msg else 'Start chatting!',
+            'last_msg_time': last_msg.timestamp.strftime('%H:%M') if last_msg else ''
+
+
+        })
+
+    return jsonify({'chats': chat_lst}), 200
+
 
 
 # Used when the User sets their interests right after registering
@@ -446,6 +669,7 @@ def get_csrf():
 
 @app.route('/api/v1/images/<filename>')
 def uploads(filename):
+    #upload_folder = os.path.join(os.getcwd(), 'uploads')
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -498,3 +722,5 @@ def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
 
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
