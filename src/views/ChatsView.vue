@@ -62,7 +62,7 @@ function openChat(chat){
 }
 
 async function getMessages(chatID){
-  fetch(`/api/v1/chats/${chatID}/messages`, {
+  fetch(`/api/v1/chats/${chatID}`, {
     method: 'GET',
     headers: {
       'ContentType': 'application/json'
@@ -201,7 +201,7 @@ onMounted(async () => {
 
     <!--No chats-->
       <div class="no-chat" v-else>
-        <p>Select a chat!</p>
+        Select a chat!
 
       </div>
 
@@ -210,14 +210,14 @@ onMounted(async () => {
 </template>
 
 
-<style>
+<style scoped>
 
 .main-content{
-  background: white;
-  padding: 5px;
+  padding: 0;
 }
 
 .chat-container{
+   background-color: white;
   display:flex;
   border: 0.5px solid #e0e0e0;
   border-radius: 20px;
@@ -313,12 +313,13 @@ onMounted(async () => {
 }
 
 .no-chat{
+  flex: 1;
   display: flex;
+  font-size: 1.1em;
   flex-direction: column;
-  padding: 20px;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content:center;
+  padding: 20px;
   color: #888;
 }
 

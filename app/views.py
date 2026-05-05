@@ -248,20 +248,29 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
-@app.route('/api/v1/user/search', methods=['GET'])
+#Endpoint is useed to search for other users. It filters by the search term and the filters provided by the user. It also sorts the results based on the user's preferences.
+@app.route('/api/v1/search', methods=['POST'])
 @login_required
-def searchUsers():
-    searchTerm = request.args.get('searchTerm','').strip()
-    filt1 = request.args.get('filter1')
-    filt2 = request.args.get('filter2')
-    filt3 = request.args.get('filter3')
-    filt4 = request.args.get('filter4')
-    sort = request.args.get('sort')
+def search_users():
+    #Get search term and filters from the request body
+    content = request.json
+    searchTerm = content['searchTerm']
+    filt1 = content['filter1']
+    filt2 = content['filter2']
+    filt3 = content['filter3']
+    filt4 = content['filter4']
+    sort = content['sort']
+    sort1 = content['sort1']
     
-    options = {"ASC": User.first_name, "DSC": User.first_name.desc(), "Age": Profile.age, "date_created": User.created_at}
+    #Initial query to get all public profiles and their associated user information
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
-    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public").order_by(options.get(sort, User.first_name))
+    current = current.filter(User.user_ID != current_user.user_ID)
     
+    # Maps of sort options to sort option
+    options = {"ASC": Profile.date_of_birth.desc() , "DSC": Profile.date_of_birth, "ASC1": User.created_at, "DSC1": User.created_at.desc()}
+    
+    #Applies filters to the query based on the user's input. Each filter is optional, and if a filter is not provided or set to "none", it will be ignored in the filtering process.
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
         
@@ -284,30 +293,52 @@ def searchUsers():
         current = current.filter(Profile.location == filt3)
         
     if filt4 and filt4 != "none":
-        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4).distinct()
+    
+    #Determines the sorting order of the users searched for.
+    sort_order = []
+    if sort1 and sort1 != "none":
+        sort_order.append(options.get(sort1))
         
+    if sort and sort != "none":
+        sort_order.append(options.get(sort))
+        
+    current = current.order_by(*sort_order) if sort_order else current
+    
+    #Final query to convert results to a list of dictionaries.
     res = current.all()
+        
+    #Get list of Profile_IDs that the current user has bookmarked to determine which profiles in the search results are bookmarked by the user.    
+    user_bookmarks = [b.Profile_ID for b in db.session.query(Bookmarks.Profile_ID).filter_by(user_ID=current_user.user_ID).all()]
+    
     
     return jsonify([{
+        "profile_ID": prof.profile_ID,
+        "bio": prof.bio,
         "username": use.user_name,
         "f_name": use.first_name,
         "l_name": use.last_name,
         "gender": prof.gender,
         "age": prof.age,
         "location": prof.location,
-        "photo": f"/api/v1/images/{prof.picture_filename}"
-        } for (use, prof) in res]), 200
+        "photo": f"/api/v1/images/{prof.picture_filename}",
+        "bookmarked": prof.profile_ID in user_bookmarks
+        } for (use, prof) in res ]), 200
 
 
 
 
-@app.route('/api/v1/user/bookmarks', methods=['GET'])
+#Function gets all bookmarked profiles for the current user and returns them as a list of dictionaries.
+@app.route('/api/v1/bookmarks', methods=['GET'])
 @login_required
-def getBookmarkedUsers():
+def get_bookmarked_users():
 
-    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
+    #Query to get all bookmarked profiles for current user.
+    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Profile.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
 
     return jsonify([{
+        "profile_ID": p.profile_ID,
+        "bio": p.bio,
         "username": u.user_name,
         "f_name": u.first_name,
         "l_name": u.last_name,
@@ -316,43 +347,46 @@ def getBookmarkedUsers():
         "location": p.location,
         "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
 
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
+#Functions handles deleting a bookmarked profile. Accepts the profileID of the user to be removed from bookmarks.
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['DELETE'])
 @login_required
-def deleteBookmarkedUser(profile_ID):
-    delete_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+def delete_bookmarked_user(profile_ID):
+    #Query to get profile information of the bookmarked user.
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If not found, returns an error message.
     if not res:
-        delete_Bookmark = False
+        return jsonify({"message": "Bookmark not found.", "removed": False}), 400
     
-    db.session.delete()
+    #Deletes the bookmark from the database and commits the change.
+    db.session.delete(res)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark deleted successfully."}), 200
+    return jsonify({"message": "Bookmark deleted successfully.", "removed": True}), 200
 
-
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
+#Function handles adding a bookmarked profile. Accepts the profileID of the user to be added to bookmarks.
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
-def addBookmarkedUser(profile_ID):
-    make_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+def add_bookmarked_user(profile_ID):
+    #Query to get profile information of the bookmarked user.
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If the bookmark already exists, returns an error message.
     if res:
-        make_Bookmark = False
+        return jsonify({"message": "Bookmark already exists.", "added": False}), 400
     
+    #Creates bookmark of profile information.
     bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
     
+    #Adds the bookmark to the database and commits the change.
     db.session.add(bookmark)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark added successfully.",
-                    "makeBookmark": make_Bookmark}), 201
+    return jsonify({"message": "Bookmark added successfully.", "added": True}), 201
 
 
 
-
-
-@app.route('/api/v1/matches', methods=['GET'])
+@app.route('/api/v1/home', methods=['GET'])
 @login_required
 def matching_algorithm():
     # Retrieve the current user's profile and interests
@@ -360,7 +394,7 @@ def matching_algorithm():
     current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == current_user.user_ID)).scalars().all()
 
     # Remove profiles already liked/disliked
-    removed_IDs = db.session.execute(db.select(Likes.liked_user_ID).where (Likes.user_ID == current_user.user_ID)).scalars().all()
+    removed_IDs = db.session.execute(db.select(Interaction.other_user_ID).where (Interaction.user_ID == current_user.user_ID)).scalars().all()
 
     # Get all other users
     potential_matches = db.session.execute(
@@ -402,7 +436,7 @@ def matching_algorithm():
     return jsonify(matches),200 
 
 
-@app.route('/api/v1/users/<int:user_ID>/interaction', methods=['POST'])
+@app.route('/api/v1/home/<int:user_ID>', methods=['POST'])
 @login_required
 def rate_user(user_ID):
     # Check that target user exists
@@ -411,31 +445,30 @@ def rate_user(user_ID):
          return jsonify({'error': 'Profile not found'}), 404
     
     # Ensure that current_user has not already rated the target
-    has_interacted = db.session.execute(db.select(Likes).where(Likes.user_ID == current_user.user_ID, Likes.liked_user_ID == user_ID)).scalar_one_or_none()
+    has_interacted = db.session.execute(db.select(Interaction).where(Interaction.user_ID == current_user.user_ID, Interaction.other_user_ID == user_ID)).scalar_one_or_none()
 
     if has_interacted:
         return jsonify({
                 'message': 'You have already interacted with this user'
             }), 400
     
-    # Else add the interaction to the Likes table
-    type_str = request.json.get('type')
-    type = LikeType(type_str)
+    # Else add the interaction to the Interaction table
+    type = request.json.get('type')
 
-    like = Likes(
+    like = Interaction(
             user_ID = current_user.user_ID,
-            liked_user_ID = user_ID,
+            other_user_ID = user_ID,
             type = type
         )
     db.session.add(like)
     db.session.commit()
 
     # If DISLIKE/PASS, do not check for a match
-    if type == LikeType.PASS:
+    if type == 'Pass':
         return jsonify({"message": "Action recorded", "matched": False}), 201
     
     # If LIKE check to see if the target user has liked the current user
-    mutual_like = db.session.execute(db.select(Likes).where(Likes.user_ID == user_ID, Likes.liked_user_ID == current_user.user_ID, Likes.type == LikeType.LIKE)).scalar_one_or_none()
+    mutual_like = db.session.execute(db.select(Interaction).where(Interaction.user_ID == user_ID, Interaction.other_user_ID == current_user.user_ID, Interaction.type == 'Like')).scalar_one_or_none()
 
     # If they have not interacted or the DISLIKE/PASS return
     if not mutual_like:
@@ -474,78 +507,9 @@ def rate_user(user_ID):
 
 
 
-'''
-@app.route('/api/v1/users/<int:user_ID>/interaction', methods=['POST'])
-@login_required
-def rate_user(user_ID):
-
-    target = db.session.execute(db.select(User).where(User.user_ID == user_ID)).scalar_one_or_none()
-    if not target:
-         return jsonify({'error': 'Profile not found'}), 404
-
-    # Check that user exists
-    if user_ID:
-
-        # Check to see if the current user has already interacted with this profile
-        has_interacted = db.session.execute(db.select(Likes).where(Likes.user_ID == current_user.user_ID, Likes.liked_user_ID == user_ID)).scalar_one_or_none()
-
-        if has_interacted:
-            return jsonify({
-                'message': 'You have already interacted with this user'
-            }), 400
-
-        type_str = request.json.get('type')
-        type = LikeType(type_str)
-        print(f"type_str: {type_str}")
-        print(f"type: {type}")
-        print(f"type.value: {type.value}")
-        
-
-        # Add interaction
-        like = Likes(
-            user_ID = current_user.user_ID,
-            liked_user_ID = user_ID,
-            type = type
-        )
-        db.session.add(like)
-        db.session.commit()
-
-        if type == LikeType.PASS:
-            return jsonify({"message": "Action recorded", "matched": False}), 201
-
-        # Check if the other user has liked the current user
-        match = db.session.execute(db.select(Likes).where(Likes.user_ID == user_ID, Likes.liked_user_ID == current_user.user_ID, Likes.type == LikeType.LIKE)).scalar_one_or_none()
-
-        if not match:
-            return jsonify({"message": "Action recorded", "matched": False}), 201
-        
-        if match:
-
-            # Check if the match already exists
-            existing_match = db.session.execute(db.select(Match).where(
-                db.or_(
-                    db.and_(Match.user_ID == current_user.user_ID, Match.match_user_ID == user_ID),
-                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == current_user.user_ID))
-            )).scalar_one_or_none()
-
-            if not existing_match:
-                new_match = Match(
-                    user_ID = current_user.user_ID,
-                    match_user_ID = user_ID
-                )
-                db.session.add(new_match)
-                db.session.commit()
-
-                return jsonify({ 'success': f'You have a match!', "matched":True}), 201 
-            
-            else: return jsonify({ 'success': f'You have already matched with this user', "matched":True}), 201 
-    else:
-        return jsonify({'error': 'Profile not found'}), 404
-
-'''
 
 
-@app.route('/api/v1/user/matches', methods=['GET'])
+@app.route('/api/v1/matches', methods=['GET'])
 @login_required
 def get_matches():
     print(f"current_user_ID: {current_user.user_ID}")
@@ -598,11 +562,11 @@ def get_matches():
 # CHAT ROUTES
 
 
-@app.route('/api/v1/chats/<int:chat_ID>/messages', methods=['GET'])
+@app.route('/api/v1/chats/<int:chat_ID>', methods=['GET'])
 @login_required
 def get_chat_history(chat_ID):
     messages = Message.query.filter_by(chat_ID=chat_ID).order_by(Message.timestamp.asc()).all()
-
+    
     msg_lst = []
 
     for m in messages:
@@ -682,32 +646,6 @@ def get_chats():
         })
 
     return jsonify({'chats': chat_lst}), 200
-
-
-
-    
-
-    
-
-
-@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
-@login_required
-def get_bookmarked_users(user_ID):
-    bookmarks = db.session.execute(db.select(Bookmarks)).where(Bookmarks.user_ID == user_ID).scalars().all()
-
-    return jsonify(bookmarks = bookmarks), 200
-
-
-
-
-@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
-@login_required
-def get_bookmarks(user_ID):
-    bookmarks = db.session.execute(
-        db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
-
-    return jsonify(bookmarks = bookmarks), 200
-
 
 
 
