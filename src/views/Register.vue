@@ -147,8 +147,10 @@ function register() {
 
         <!-- Column 2 -->
         <div class="section">
-          
-          <input type="date" v-model="birthdate" />
+
+          <div class="sub-section">
+
+          <input type="date" v-model="birthdate" placeholder="Birthdate"/>
       
           <select v-model="gender">
             <option disabled value="">Select Your Gender</option>
@@ -156,6 +158,10 @@ function register() {
             <option value="Female">Female</option>
             <option value="Non-binary">Non-binary</option>
           </select>
+
+          </div>
+          
+         
 
           <select v-model="gender_preference">
             <option disabled value="">Select Your Gender Preference</option>
@@ -191,7 +197,9 @@ function register() {
             <option value="100">100 km</option>
             <option value="300">300 km</option>
           </select>
-        </div>
+  
+          </div>
+         
 
       </div>
 
@@ -245,6 +253,14 @@ h1 {
     padding: 20px;
     gap: 15px;
  
+}
+
+.sub-section {
+  display: flex;
+  flex-direction: row;
+  padding: 20px;
+  gap: 15px;
+   
 }
 
 .labels {

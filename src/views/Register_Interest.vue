@@ -131,8 +131,6 @@ h1 {
 }
 
 
-
-
 button {
     border-radius: 20px;
     background-color: #9a60ab;
