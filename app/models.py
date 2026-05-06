@@ -1,7 +1,7 @@
 from . import db, login_manager
 import enum
 from sqlalchemy.dialects import postgresql
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import date
 from flask_login import UserMixin
 
@@ -25,8 +25,22 @@ class ChildrenPreference(str, enum.Enum):
 
 class LikeType(str, enum.Enum):
   LIKE = "Like"
-  DISLIKE = "Dislike"
   PASS = "Pass"
+
+class AgePreference(str, enum.Enum):
+  Young_Adult = '18-24'
+  Adult = '25-29'
+  MiddleAged = '30-40'
+  Old = '>41'
+
+class LocationRangePreference(str, enum.Enum):
+  NEAR = "25"
+  MID = "50"
+  FAR = "100"
+  ISLAND_WIDE = "250"
+
+  
+  
 
 
 
@@ -54,6 +68,7 @@ class User(db.Model, UserMixin): # Base User Class
 
 
   profile = db.relationship('Profile', backref='user', uselist=False)
+ 
 
   def get_id(self):
     return str(self.user_ID)
@@ -84,6 +99,8 @@ class Profile(db.Model):
   gender_preference = db.Column(postgresql.ENUM(Gender, name = "gender_preference"), nullable = False)
   wants_children = db.Column(postgresql.ENUM(ChildrenPreference, name = "children_preference"), nullable = False)
   relationship_type_preference = db.Column(postgresql.ENUM(RelationshipPreference, name = "relationship_preference"), nullable = False)
+  age_preference = db.Column(postgresql.ENUM(AgePreference, name ="age_preference"), nullable = False)
+  radius_preference = db.Column(db.Enum('25', '50', '100', '300', name='location_preference'), nullable=False, default='100')
 
   @property
   def age(self):
@@ -120,7 +137,7 @@ class Likes(db.Model):
   user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True)
   liked_user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True)
 
-  type = db.Column(postgresql.ENUM(LikeType, name="like_type"), nullable=False)
+  type = db.Column(db.Enum(LikeType, name="like_type", values_callable=lambda x: [e.value for e in x]), nullable=False)
 
   created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -173,4 +190,3 @@ class Message (db.Model):
 
   content = db.Column(db.Text, nullable = True)
   timestamp = db.Column(db.DateTime, default=datetime.now)
-

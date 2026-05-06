@@ -50,11 +50,21 @@ class RegisterForm(FlaskForm):
       ('Serious', 'Serious')
   ], validators=[InputRequired()])
 
+  age_preference = SelectField('Age Preference', choices=[
+    ('', 'Select age range'),
+    ('18-24', '18–24'),
+    ('25-29', '25–29'),
+    ('30-40', '30–40'),
+    ('>41', '41+')
+  ], validators=[InputRequired()])
+
   wants_children = SelectField('Do You Want Children?', choices=[
       ('', 'Select an option'),
       ('Wants Children', 'Wants Children'),
       ('Does Not Want Children', 'Does Not Want Children')
   ], validators=[InputRequired()])
+
+
   
   
 

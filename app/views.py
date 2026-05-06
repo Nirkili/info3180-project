@@ -6,7 +6,7 @@ This file creates your application.
 """
 
 from . import app, db, bcrypt
-from flask import render_template, request, jsonify, send_file, redirect, url_for
+from flask import render_template, request, jsonify, send_file, redirect, session, url_for, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import generate_csrf
@@ -19,33 +19,26 @@ import os
 # Routing for your application.
 ###
 
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
-
-
 # Auth Routes
-@app.route('/api/v1/auth/register', methods = ['POST'])
+@app.route('/api/v1/auth/register_user', methods = ['POST'])
 def register():
     form = RegisterForm()
 
     if form.validate_on_submit():
 
         # Get form Data
+        username = form.username.data
         first_name = form.first_name.data
         last_name = form.last_name.data
-        username = form.username.data
-        email = form.email.data
-        dob = form.date_of_birth.data
         password = form.password.data
+        email = form.email.data
+
+        dob = form.date_of_birth.data
         gender = form.gender.data
         gender_preference = form.gender_preference.data
         relationship_preference = form.relationship_preference.data
         wants_children = form.wants_children.data
-
-
-
-
+        age_preference = form.age_preference.data
 
         # Ensure that there are no duplicate usernames
         if User.query.filter_by(user_name = username).first():
@@ -55,7 +48,7 @@ def register():
             ]}), 409
 
         # Ensure that there are no duplicate emails
-        if User.query.filter_by(user_name = username).first(): #fix
+        if User.query.filter_by(email = email).first(): #fix
             return jsonify({'errors': [
                 {'field': 'Email',
                  'message': 'Email already registered'}
@@ -84,6 +77,7 @@ def register():
             gender_preference = gender_preference,
             relationship_type_preference = relationship_preference,
             wants_children = wants_children,
+            age_preference = age_preference,
             location = '',
             visibility_status = 'Public',
             picture_filename = ''
@@ -123,7 +117,9 @@ def login():
                 
                 return jsonify({
                     'message': 'Login Successful',
-                    'user_id': user.user_ID
+                    'user_id': user.user_ID,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
                 }), 200
             
             return jsonify({'errors': [
@@ -136,6 +132,7 @@ def login():
 @app.route('/api/v1/auth/logout', methods=['POST'])
 @login_required
 def logout():
+    print("HELLOOO")
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
 
@@ -176,6 +173,10 @@ def get_my_profile():
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
+
+
+
+
 
 @app.route('/api/v1/profile', methods=['PUT'])
 @login_required
@@ -243,20 +244,290 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
+@app.route('/api/v1/user/search', methods=['GET'])
+@login_required
+def searchUsers():
+    searchTerm = request.args.get('searchTerm','').strip()
+    filt1 = request.args.get('filter1')
+    filt2 = request.args.get('filter2')
+    filt3 = request.args.get('filter3')
+    filt4 = request.args.get('filter4')
+    sort = request.args.get('sort')
+    
+    options = {"ASC": User.first_name, "DSC": User.first_name.desc(), "Age": Profile.age, "date_created": User.created_at}
+    
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public").order_by(options.get(sort, User.first_name))
+    
+    if searchTerm:
+        current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
+        print(current)
+        
+    if filt1 != "none":
+        today = date.today()
+        if filt1 == ">41":
+            max_dob = today - timedelta(days=42 * 365.25)
+            current = current.filter(Profile.date_of_birth <= max_dob)
+        else:
+            start, end = map(int, filt1.split("-"))
+            latest_dob = today - timedelta(days=start * 365.25)
+            earliest_dob = today - timedelta(days=(end + 1) * 365.25)
+        
+            current = current.filter(Profile.date_of_birth.between(earliest_dob, latest_dob))
+            
+    if filt2 != "none":
+        current = current.filter(Profile.gender == filt2)
+        
+    if filt3 != "none":
+        current = current.filter(Profile.location == filt3)
+        
+    if filt4 != "none":
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
+        
+    res = current.all()
+    
+    return jsonify([{
+        "username": use.user_name,
+        "f_name": use.first_name,
+        "l_name": use.last_name,
+        "gender": prof.gender,
+        "age": prof.age,
+        "location": prof.location,
+        "photo": f"/api/v1/images/{prof.picture_filename}"
+        } for (use, prof) in res]), 200
+
+
+
+
+@app.route('/api/v1/user/bookmarks', methods=['GET'])
+@login_required
+def getBookmarkedUsers():
+
+    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
+
+    return jsonify([{
+        "username": u.user_name,
+        "f_name": u.first_name,
+        "l_name": u.last_name,
+        "gender": p.gender,
+        "age": p.age,
+        "location": p.location,
+        "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
+
+@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
+@login_required
+def deleteBookmarkedUser(profile_ID):
+    delete_Bookmark = True
+    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    
+    if not res:
+        delete_Bookmark = False
+    
+    db.session.delete()
+    db.session.commit()
+
+    return jsonify({"message": "Bookmark deleted successfully."}), 200
+
+@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
+@login_required
+def addBookmarkedUser(profile_ID):
+    make_Bookmark = True
+    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+    
+    if res:
+        make_Bookmark = False
+    
+    bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
+    
+    db.session.add(bookmark)
+    db.session.commit()
+
+    return jsonify({"message": "Bookmark added successfully.",
+                    "makeBookmark": make_Bookmark}), 201
+
+@app.route('/api/v1/matches', methods=['GET'])
+@login_required
+def matching_algorithm():
+
+    # This function takes the interests, location, age, gender and child preferences of the current user
+    # And calculates a score for every other user in the system based on how well they fit the requirements
+    # For each matching interest the score will increase by 0.5
+    # Gender and Age preference will have a weighting of 2
+    # Location will have a weighting of 3
+    # Child preference will have a weighting of 1
+
+
+    # PART 1 - Retreive the current user's preferences.
+    user = current_user
+
+    current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == user.user_ID)).scalars().all()
+    current_profile = db.session.execute(db.select(Profile).where(Profile.user_ID == user.user_ID)).scalar_one()
+
+
+    # PART 2 - Retrieve all other users
+    potential_matches = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == User.user_ID).where(User.user_ID != user.user_ID)).all()
+
+    match_lst = []
+    for other, profile in potential_matches:
+        #Set score
+        score = 0
+
+        # Get user interests
+        interests = db.session.execute(db.select(UserInterest.interest_ID). where(UserInterest.user_ID == other.user_ID))
+
+        # Algorithm
+        # Check how many interests are shared with the current user
+        shared = len(set(current_interests) & set(interests))
+        score += shared * 0.4
+
+        # Check location match
+        if current_profile.location == profile.location:
+            score += 2
+
+        # Check gender match
+        if current_profile.gender_preference == profile.gender:
+            score += 3
+        
+        # Check children match
+        if current_profile.wants_children == profile.wants_children:
+            score += 1.5
+
+        #Check relationship type match
+        if current_profile.relationship_type_preference == profile.relationship_type_preference:
+            score += 2
+
+        # Check age-range match
+        print(current_profile.age_preference)
+
+        # Add to lst
+        match_lst.append({
+
+            "user_ID": other.user_ID,
+            "f_name": other.first_name,
+            "l_name": other.last_name,
+            "username": other.user_name,
+            "age": profile.age,
+            "bio": profile.bio,
+            "gender": profile.gender,
+            "location": profile.location,
+            "photo": f"/api/v1/images/{profile.picture_filename}",
+            "score": score,
+            "percentage": round(((score/7) * 100), 2) # FIX THIS
+        })
+        
+
+
+        
+
+    match_lst.sort(key=lambda m: m["score"], reverse=True)
+    
+    return jsonify(match_lst),200
+
+
+
+
+
+
+
+@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
+@login_required
+def get_bookmarked_users(user_ID):
+    bookmarks = db.session.execute(db.select(Bookmarks)).where(Bookmarks.user_ID == user_ID).scalars().all()
+
+    return jsonify(bookmarks = bookmarks), 200
+
+
+
+
+@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
+@login_required
+def get_bookmarks(user_ID):
+    bookmarks = db.session.execute(
+        db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
+
+    return jsonify(bookmarks = bookmarks), 200
+
+
+
+
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
-def interest():
-    pass
+def set_interests():
+    data = request.json
+    selected_ids = data.get("interest_ids", [])
+
+    if len(selected_ids) < 3 or len(selected_ids) > 5:
+        return {"error": "Select between 3 and 5 interests"}, 400
+
+    user = current_user
+
+    user.interests = Interest.query.filter(
+        Interest.interest_ID.in_(selected_ids)
+    ).all()
+
+    db.session.commit()
+
+    return {"message": "Interests saved"}, 200
+
+
+# Retrieves all interests from the database
+@app.route("/api/v1/interests", methods=["GET"])
+def get_interests():
+
+    interests = Interest.query.all()
+    print("interests: ", interests)
+
+    return jsonify([
+        {"id": i.interest_ID, "name": i.name}
+        for i in interests
+    ])
+
+
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 # CSRF
 @app.route('/api/v1/csrf-token', methods=['GET'])
 def get_csrf():
     return jsonify({'csrf_token': generate_csrf()})
 
+
+
+@app.route('/api/v1/images/<filename>')
+def uploads(filename):
+    #upload_folder = os.path.join(os.getcwd(), 'uploads')
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({'errors': [{'message': 'Unauthorized'}]}), 401
+
 ###
 # The functions below should be applicable to all Flask apps.
 ###
+
+# Helper functions
+"""Takes the Enum age range and minds the minimum and maximum values"""
+def split_age_range(preference):
+    if preference.startswith(">"):
+        min = 41
+        max = None
+        return min, max
+    range = preference.split("-")
+    min = int(range[0])
+    max = int(range[1])
+    return min, max
+
+def is_preference(age, preference):
+    min, max = split_age_range(preference)
+
+    if max is None: return age
 
 # Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
@@ -295,3 +566,4 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
