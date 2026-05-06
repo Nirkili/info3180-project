@@ -52,7 +52,10 @@ class Profile(db.Model):
   date_of_birth = db.Column(db.Date, nullable=False)
   gender = db.Column(db.Enum('Female', 'Male', 'Non-binary', name = "gender"), nullable = False)
   bio = db.Column(db.Text)
-  
+  education = db.Column(db.String(255))
+  job = db.Column(db.String(255))
+  relationship_status = db.Column(db.Enum('Single', 'Open Relationship', 'Married', name='relationship_status'))
+
   location = db.Column(db.String(100), nullable=False, index=True)
   visibility_status = db.Column(db.Enum('Private', 'Public', name = "account_status"), nullable = False)
   

@@ -23,27 +23,27 @@ import os
 ###
 
 # Auth Routes
-@app.route('/api/v1/auth/register', methods = ['POST'])
+@app.route('/api/v1/auth/register_user', methods = ['POST'])
 def register():
     form = RegisterForm()
 
-    if form.validate_on_submit():
+    if form.validate():
+        print("Form passed validation")
 
         # Get form Data
+        username = form.username.data
         first_name = form.first_name.data
         last_name = form.last_name.data
-        username = form.username.data
-        email = form.email.data
-        dob = form.date_of_birth.data
         password = form.password.data
+        email = form.email.data
+
+        dob = form.date_of_birth.data
         gender = form.gender.data
         gender_preference = form.gender_preference.data
         relationship_preference = form.relationship_preference.data
         wants_children = form.wants_children.data
-
-
-
-
+        age_preference = form.age_preference.data
+        location = form.location.data
 
         # Ensure that there are no duplicate usernames
         if User.query.filter_by(user_name = username).first():
@@ -71,6 +71,8 @@ def register():
             password = password_hash
         )
 
+        print('I am here')
+
         db.session.add(new_user)
         db.session.flush() # Get new user ID
 
@@ -82,20 +84,25 @@ def register():
             gender_preference = gender_preference,
             relationship_type_preference = relationship_preference,
             wants_children = wants_children,
-            location = '',
+            age_preference = age_preference,
+            location = location,
             visibility_status = 'Public',
-            picture_filename = ''
+            picture_filename = 'profile.jpg'
 
         )
 
         db.session.add(new_profile)
         db.session.commit()
 
+        print('I am here')
+
         login_user(new_user) # Login the new user after successful registration
 
         return jsonify({
             'message': 'Registration successful',
-            'user_id': new_user.user_ID
+            'user_id': new_user.user_ID,
+            'first_name': new_user.first_name,
+            'last_name': new_user.last_name
         }), 201
 
     return jsonify({'errors': form_errors(form)}), 400
@@ -136,7 +143,6 @@ def login():
 @app.route('/api/v1/auth/logout', methods=['POST'])
 @login_required
 def logout():
-    print("HELLOOO")
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
 
@@ -154,16 +160,22 @@ def auth_status():
 # Profile Routes
 
 # Get the current user's profile
-@app.route('/api/v1/profile', methods=['GET'])
+@app.route('/api/v1/profile/me', methods=['GET'])
 @login_required
 def get_my_profile():
     # Query the profile table
-    profile = Profile.query.filter_by(user_ID = current_user.user_ID).first()
+    profile = db.session.execute(db.select(Profile).filter_by(user_ID = current_user.user_ID)).scalar_one()
+
+    interests = db.session.execute(db.select(Interest).join(UserInterest, UserInterest.interest_ID == Interest.interest_ID).where(UserInterest.user_ID == current_user.user_ID).distinct()).scalars().all()
+
 
     if profile: #If the profile exists, return all information
         return jsonify({
         'profile_ID':                    profile.profile_ID, #Change
         'user_ID':                       profile.user_ID,
+        'first_name':                    current_user.first_name,
+        'last_name':                     current_user.last_name,
+        'username':                      current_user.user_name,
         'date_of_birth':                 profile.date_of_birth.isoformat(),
         'gender':                        profile.gender,
         'bio':                           profile.bio,
@@ -172,8 +184,10 @@ def get_my_profile():
         'picture':                       profile.picture_filename,
         'gender_preference':             profile.gender_preference,
         'wants_children':                profile.wants_children,
-        'relationship_type_preference':  profile.relationship_type_preference,
-        'age':                           profile.age
+        'relationship_preference':  profile.relationship_type_preference,
+        'age_preference':           profile.age_preference,
+        'age':                           profile.age,
+        'interests':                     [i.interest_name for i in interests]
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
@@ -228,12 +242,15 @@ def update_profile():
 def get_profile(profile_id):
 
     # Query the profile
-    profile = Profile.query.filter_by(profile_ID = profile_id).first()
+    user, profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == profile_id)).scalar_one()
 
-    if profile:
+    if profile: #If the profile exists, return all information
         return jsonify({
-        'profile_ID':                    profile.profile_ID, #fix
+        'profile_ID':                    profile.profile_ID, #Change
         'user_ID':                       profile.user_ID,
+        'first_name':                    user.first_name,
+        'last_name':                     user.last_name,
+        'username':                      user.user_name,
         'date_of_birth':                 profile.date_of_birth.isoformat(),
         'gender':                        profile.gender,
         'bio':                           profile.bio,
@@ -512,7 +529,6 @@ def rate_user(user_ID):
 @app.route('/api/v1/matches', methods=['GET'])
 @login_required
 def get_matches():
-    print(f"current_user_ID: {current_user.user_ID}")
     
     # Get all rows that include the current user's ID
     matches = db.session.execute(db.select(Match).where(
@@ -521,7 +537,6 @@ def get_matches():
             Match.match_user_ID == current_user.user_ID
         )
     )).scalars().all()
-    print(f"matches: {matches}")
 
     other_users = []
 
@@ -533,7 +548,6 @@ def get_matches():
                 other_users.append(match.user_ID)
         
         # Get Profiles
-        print(f"other_users: {other_users}")
 
         profiles = []
 
@@ -652,8 +666,35 @@ def get_chats():
 # Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
-def interest():
-    pass
+def set_interests():
+    data = request.json
+    selected_ids = data.get("interest_ids", [])
+
+    if len(selected_ids) < 3 or len(selected_ids) > 5:
+        return {"error": "Select between 3 and 5 interests"}, 400
+
+    user = current_user
+
+    user.interests = Interest.query.filter(
+        Interest.interest_ID.in_(selected_ids)
+    ).all()
+
+    db.session.commit()
+
+    return {"message": "Interests saved"}, 200
+
+
+# Retrieves all interests from the database
+@app.route("/api/v1/interests", methods=["GET"])
+def get_interests():
+
+    interests = Interest.query.all()
+    print("interests: ", interests)
+
+    return jsonify([
+        {"id": i.interest_ID, "name": i.interest_name}
+        for i in interests
+    ])
 
 
 
@@ -723,7 +764,7 @@ def add_header(response):
 @app.errorhandler(404)
 def page_not_found(error):
     """Custom 404 page."""
-    return render_template('404.html'), 404
+    return jsonify({'error': 'Not found'}), 404
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

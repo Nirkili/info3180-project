@@ -9,7 +9,35 @@ def gen_users_profiles():
         with app.app_context():
             try:
                 gender_options = ["Male", "Female", "Non-binary"]
-                parishes = ["Kingston", "St. Andrew", "St. Thomas", "Portland", "St. Mary", "St. Ann", "Trelawny", "St. James", "Hanover", "Westmoreland", "St. Elizabeth", "Manchester", "Clarendon", "St. Catherine"]
+                parishes = ["Kingston", "St.Andrew", "St.Thomas", "Portland", "St.Mary", "St.Ann", "Trelawny", "St.James", "Hanover", "Westmoreland", "St.Elizabeth", "Manchester", "Clarendon", "St.Catherine"]
+                degrees = [
+                        'Bachelor of Science in Computer Science',
+                        'Bachelor of Science in Information Technology',
+                        'Bachelor of Science in Mathematics',
+                        'Bachelor of Science in Biology',
+                        'Bachelor of Science in Chemistry',
+                        'Bachelor of Science in Physics',
+                        'Bachelor of Science in Nursing',
+                        'Bachelor of Science in Psychology',
+                        'Bachelor of Arts in English',
+                        'Bachelor of Arts in History',
+                        'Bachelor of Arts in Sociology',
+                        'Bachelor of Arts in Philosophy',
+                        'Bachelor of Arts in Political Science',
+                        'Bachelor of Arts in Communications',
+                        'Bachelor of Business Administration',
+                        'Bachelor of Commerce',
+                        'Bachelor of Engineering in Civil Engineering',
+                        'Bachelor of Engineering in Mechanical Engineering',
+                        'Bachelor of Engineering in Electrical Engineering',
+                        'Bachelor of Laws',
+                        'Bachelor of Medicine',
+                        'Bachelor of Architecture',
+                        'Bachelor of Education',
+                        'Bachelor of Social Work',
+                        'Bachelor of Fine Arts',
+                    ]
+
 
                 credentials = []
 
@@ -45,7 +73,9 @@ def gen_users_profiles():
                         user_ID=new_user.user_ID,
                         date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=60),
                         gender=gender,
-                        bio=fake.sentence(nb_words=12),
+                        bio=fake.paragraph(nb_sentences=3),
+                        education = fake.random.choice(degrees),
+                        job = fake.job(),
                         location=random.choice(parishes),
                         visibility_status= visibility,
                         picture_filename="default.jpg",
@@ -130,17 +160,6 @@ def gen_Likes(user_ID):
     db.session.commit()
 
     return match
-    
-"""def assign_matches(user_ID):
-    all_users = db.session.execute(db.select(Likes).where(Likes.user_ID != user_ID)).scalars().all()
-    
-    for user in all_users:
-        
-    likes_you = db.session.execute(db.select(Match).where(Match.match_user_ID == user_ID, )).scalars().all()
-    
-    you_like = db.session.execute(db.select(Match).where(Match.user_ID == user_ID)).scalars().all()"""
-    
-   
     
 def genBookmarks(user_ID, profile):
     print(f"Generating bookmarks for user_ID: {user_ID}")

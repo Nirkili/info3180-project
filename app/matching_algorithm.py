@@ -11,26 +11,24 @@ These are the coordinates for each parish. They are generalized to make distance
 """
 COORDINATES = {
   "Kingston":      (17.9683, -76.7827),
-  "St. Andrew":    (18.0747, -76.7956),
-  "St. Thomas":    (17.9320, -76.5419),
+  "St.Andrew":    (18.0747, -76.7956),
+  "St.Thomas":    (17.9320, -76.5419),
   "Portland":      (18.0844, -76.4100),
-  "St. Mary":      (18.2923, -76.9561),
-  "St. Ann":       (18.4346, -77.2016),
+  "St.Mary":      (18.2923, -76.9561),
+  "St.Ann":       (18.4346, -77.2016),
   "Trelawny":      (18.3526, -77.6078),
-  "St. James":     (18.4762, -77.8939),
+  "St.James":     (18.4762, -77.8939),
   "Hanover":       (18.4098, -78.1336),
   "Westmoreland":  (18.2944, -78.1564),
-  "St. Elizabeth": (18.0670, -77.5161),
+  "St.Elizabeth": (18.0670, -77.5161),
   "Manchester":    (18.0670, -77.5161),
   "Clarendon":     (17.9557, -77.2405),
-  "St. Catherine": (18.0364, -77.0564),
+  "St.Catherine": (18.0364, -77.0564),
 }
 
 # Helper functions
 """Takes the Enum age range and minds the minimum and maximum values"""
 def split_age_range(preference):
-    print("HELOOOOO")
-    print(preference)
     if preference.startswith(">"):
         min = 41
         max = None
@@ -61,6 +59,10 @@ def calc_distance(current_location, other_location):
   # Get coordinates
   curret_coords = COORDINATES.get(current_location)
   other_coords = COORDINATES.get(other_location)
+
+  if curret_coords is None or other_coords is None:
+        print(f"Location not found: '{current_location}' or '{other_location}'")
+        return float('inf')
 
   # Perform calculation
   distance = haversine(curret_coords, other_coords, unit=Unit.KILOMETERS)
@@ -101,7 +103,7 @@ def calc_score(current_profile, current_interests, profile, interests):
   base_score += 0.4
 
   # If a potential match's location is with the curren user's desired range 
-  if calc_distance(current_profile.location, profile.location) <= int(current_profile.radius_preference):
+  if calc_distance(current_profile.location.strip(), profile.location.strip()) <= int(current_profile.radius_preference):
      base_score += 2.5
 
   # If the a potetial match fits the current user's gender preference

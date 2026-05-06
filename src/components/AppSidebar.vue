@@ -1,13 +1,15 @@
 <script setup>
-  const first_name = localStorage.getItem("first_name");
-  const last_name = localStorage.getItem("last_name");
+
+  import { useAuthStore } from '../stores/auth';
+  const authStore = useAuthStore();
+  let first_name = authStore.firstName;
   
   
   function getInitials(){
-  if(!first_name || !last_name){
+  if(!authStore.firstName || !authStore.lastName){
     return '?'
   }
-  return  first_name[0] + last_name[0]
+  return  authStore.firstName[0] + authStore.lastName[0]
 
 }
 
