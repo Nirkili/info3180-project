@@ -6,12 +6,15 @@ This file creates your application.
 """
 
 from . import app, db, bcrypt
-from flask import render_template, request, jsonify, send_file, redirect, session, url_for, send_from_directory
+from app import socketio
+from flask_socketio import emit, join_room
+from flask import render_template, request, jsonify, send_file, redirect, url_for, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import generate_csrf
 from .models import *
 from .forms import *
+from .matching_algorithm import calc_score
 import os
 
 
@@ -24,7 +27,8 @@ import os
 def register():
     form = RegisterForm()
 
-    if form.validate_on_submit():
+    if form.validate():
+        print("Form passed validation")
 
         # Get form Data
         username = form.username.data
@@ -39,6 +43,7 @@ def register():
         relationship_preference = form.relationship_preference.data
         wants_children = form.wants_children.data
         age_preference = form.age_preference.data
+        location = form.location.data
 
         # Ensure that there are no duplicate usernames
         if User.query.filter_by(user_name = username).first():
@@ -66,6 +71,8 @@ def register():
             password = password_hash
         )
 
+        print('I am here')
+
         db.session.add(new_user)
         db.session.flush() # Get new user ID
 
@@ -78,20 +85,24 @@ def register():
             relationship_type_preference = relationship_preference,
             wants_children = wants_children,
             age_preference = age_preference,
-            location = '',
+            location = location,
             visibility_status = 'Public',
-            picture_filename = ''
+            picture_filename = 'profile.jpg'
 
         )
 
         db.session.add(new_profile)
         db.session.commit()
 
+        print('I am here')
+
         login_user(new_user) # Login the new user after successful registration
 
         return jsonify({
             'message': 'Registration successful',
-            'user_id': new_user.user_ID
+            'user_id': new_user.user_ID,
+            'first_name': new_user.first_name,
+            'last_name': new_user.last_name
         }), 201
 
     return jsonify({'errors': form_errors(form)}), 400
@@ -132,7 +143,6 @@ def login():
 @app.route('/api/v1/auth/logout', methods=['POST'])
 @login_required
 def logout():
-    print("HELLOOO")
     logout_user()
     return jsonify({'message': 'Logged out successfully'}), 200
 
@@ -150,16 +160,22 @@ def auth_status():
 # Profile Routes
 
 # Get the current user's profile
-@app.route('/api/v1/profile', methods=['GET'])
+@app.route('/api/v1/profile/me', methods=['GET'])
 @login_required
 def get_my_profile():
     # Query the profile table
-    profile = Profile.query.filter_by(user_ID = current_user.user_ID).first()
+    profile = db.session.execute(db.select(Profile).filter_by(user_ID = current_user.user_ID)).scalar_one()
+
+    interests = db.session.execute(db.select(Interest).join(UserInterest, UserInterest.interest_ID == Interest.interest_ID).where(UserInterest.user_ID == current_user.user_ID).distinct()).scalars().all()
+
 
     if profile: #If the profile exists, return all information
         return jsonify({
         'profile_ID':                    profile.profile_ID, #Change
         'user_ID':                       profile.user_ID,
+        'first_name':                    current_user.first_name,
+        'last_name':                     current_user.last_name,
+        'username':                      current_user.user_name,
         'date_of_birth':                 profile.date_of_birth.isoformat(),
         'gender':                        profile.gender,
         'bio':                           profile.bio,
@@ -168,8 +184,10 @@ def get_my_profile():
         'picture':                       profile.picture_filename,
         'gender_preference':             profile.gender_preference,
         'wants_children':                profile.wants_children,
-        'relationship_type_preference':  profile.relationship_type_preference,
-        'age':                           profile.age
+        'relationship_preference':  profile.relationship_type_preference,
+        'age_preference':           profile.age_preference,
+        'age':                           profile.age,
+        'interests':                     [i.interest_name for i in interests]
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
@@ -224,12 +242,15 @@ def update_profile():
 def get_profile(profile_id):
 
     # Query the profile
-    profile = Profile.query.filter_by(profile_ID = profile_id).first()
+    user, profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == profile_id)).scalar_one()
 
-    if profile:
+    if profile: #If the profile exists, return all information
         return jsonify({
-        'profile_ID':                    profile.profile_ID, #fix
+        'profile_ID':                    profile.profile_ID, #Change
         'user_ID':                       profile.user_ID,
+        'first_name':                    user.first_name,
+        'last_name':                     user.last_name,
+        'username':                      user.user_name,
         'date_of_birth':                 profile.date_of_birth.isoformat(),
         'gender':                        profile.gender,
         'bio':                           profile.bio,
@@ -244,25 +265,33 @@ def get_profile(profile_id):
 
     return jsonify({'error': 'Profile not found'}), 404
 
-@app.route('/api/v1/user/search', methods=['GET'])
+#Endpoint is useed to search for other users. It filters by the search term and the filters provided by the user. It also sorts the results based on the user's preferences.
+@app.route('/api/v1/search', methods=['POST'])
 @login_required
-def searchUsers():
-    searchTerm = request.args.get('searchTerm','').strip()
-    filt1 = request.args.get('filter1')
-    filt2 = request.args.get('filter2')
-    filt3 = request.args.get('filter3')
-    filt4 = request.args.get('filter4')
-    sort = request.args.get('sort')
+def search_users():
+    #Get search term and filters from the request body
+    content = request.json
+    searchTerm = content['searchTerm']
+    filt1 = content['filter1']
+    filt2 = content['filter2']
+    filt3 = content['filter3']
+    filt4 = content['filter4']
+    sort = content['sort']
+    sort1 = content['sort1']
     
-    options = {"ASC": User.first_name, "DSC": User.first_name.desc(), "Age": Profile.age, "date_created": User.created_at}
+    #Initial query to get all public profiles and their associated user information
+    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public")
     
-    current = db.session.query(User, Profile).join(Profile, User.user_ID == Profile.user_ID).filter(Profile.visibility_status == "Public").order_by(options.get(sort, User.first_name))
+    current = current.filter(User.user_ID != current_user.user_ID)
     
+    # Maps of sort options to sort option
+    options = {"ASC": Profile.date_of_birth.desc() , "DSC": Profile.date_of_birth, "ASC1": User.created_at, "DSC1": User.created_at.desc()}
+    
+    #Applies filters to the query based on the user's input. Each filter is optional, and if a filter is not provided or set to "none", it will be ignored in the filtering process.
     if searchTerm:
         current = current.filter(User.user_name.ilike(f"%{searchTerm}%"))
-        print(current)
         
-    if filt1 != "none":
+    if filt1 and filt1 != "none":
         today = date.today()
         if filt1 == ">41":
             max_dob = today - timedelta(days=42 * 365.25)
@@ -274,37 +303,59 @@ def searchUsers():
         
             current = current.filter(Profile.date_of_birth.between(earliest_dob, latest_dob))
             
-    if filt2 != "none":
+    if filt2 and filt2 != "none":
         current = current.filter(Profile.gender == filt2)
         
-    if filt3 != "none":
+    if filt3 and filt3 != "none":
         current = current.filter(Profile.location == filt3)
         
-    if filt4 != "none":
-        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4)
+    if filt4 and filt4 != "none":
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4).distinct()
+    
+    #Determines the sorting order of the users searched for.
+    sort_order = []
+    if sort1 and sort1 != "none":
+        sort_order.append(options.get(sort1))
         
+    if sort and sort != "none":
+        sort_order.append(options.get(sort))
+        
+    current = current.order_by(*sort_order) if sort_order else current
+    
+    #Final query to convert results to a list of dictionaries.
     res = current.all()
+        
+    #Get list of Profile_IDs that the current user has bookmarked to determine which profiles in the search results are bookmarked by the user.    
+    user_bookmarks = [b.Profile_ID for b in db.session.query(Bookmarks.Profile_ID).filter_by(user_ID=current_user.user_ID).all()]
+    
     
     return jsonify([{
+        "profile_ID": prof.profile_ID,
+        "bio": prof.bio,
         "username": use.user_name,
         "f_name": use.first_name,
         "l_name": use.last_name,
         "gender": prof.gender,
         "age": prof.age,
         "location": prof.location,
-        "photo": f"/api/v1/images/{prof.picture_filename}"
-        } for (use, prof) in res]), 200
+        "photo": f"/api/v1/images/{prof.picture_filename}",
+        "bookmarked": prof.profile_ID in user_bookmarks
+        } for (use, prof) in res ]), 200
 
 
 
 
-@app.route('/api/v1/user/bookmarks', methods=['GET'])
+#Function gets all bookmarked profiles for the current user and returns them as a list of dictionaries.
+@app.route('/api/v1/bookmarks', methods=['GET'])
 @login_required
-def getBookmarkedUsers():
+def get_bookmarked_users():
 
-    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Bookmarks.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
+    #Query to get all bookmarked profiles for current user.
+    bookmarks = db.session.execute(db.select(Profile, User).join(Bookmarks, Bookmarks.Profile_ID == Profile.profile_ID).join(User, User.user_ID == Profile.user_ID).where(current_user.user_ID == Bookmarks.user_ID, Profile.visibility_status == "Public")).all()
 
     return jsonify([{
+        "profile_ID": p.profile_ID,
+        "bio": p.bio,
         "username": u.user_name,
         "f_name": u.first_name,
         "l_name": u.last_name,
@@ -313,139 +364,302 @@ def getBookmarkedUsers():
         "location": p.location,
         "photo": f"/api/v1/images/{p.picture_filename}"} for (p,u) in bookmarks]), 200
 
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['DELETE'])
+#Functions handles deleting a bookmarked profile. Accepts the profileID of the user to be removed from bookmarks.
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['DELETE'])
 @login_required
-def deleteBookmarkedUser(profile_ID):
-    delete_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+def delete_bookmarked_user(profile_ID):
+    #Query to get profile information of the bookmarked user.
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If not found, returns an error message.
     if not res:
-        delete_Bookmark = False
+        return jsonify({"message": "Bookmark not found.", "removed": False}), 400
     
-    db.session.delete()
+    #Deletes the bookmark from the database and commits the change.
+    db.session.delete(res)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark deleted successfully."}), 200
+    return jsonify({"message": "Bookmark deleted successfully.", "removed": True}), 200
 
-@app.route('/api/v1/user/bookmarks/<int:profile_ID>', methods=['POST'])
+#Function handles adding a bookmarked profile. Accepts the profileID of the user to be added to bookmarks.
+@app.route('/api/v1/bookmarks/<int:profile_ID>', methods=['POST'])
 @login_required
-def addBookmarkedUser(profile_ID):
-    make_Bookmark = True
-    res = db.session.execute(db.select(Bookmark).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID))
+def add_bookmarked_user(profile_ID):
+    #Query to get profile information of the bookmarked user.
+    res = db.session.execute(db.select(Bookmarks).where(Bookmarks.user_ID == current_user.user_ID, Bookmarks.Profile_ID == profile_ID)).scalar_one_or_none()
     
+    #If the bookmark already exists, returns an error message.
     if res:
-        make_Bookmark = False
+        return jsonify({"message": "Bookmark already exists.", "added": False}), 400
     
+    #Creates bookmark of profile information.
     bookmark = Bookmarks(user_ID = current_user.user_ID, Profile_ID =profile_ID)
     
+    #Adds the bookmark to the database and commits the change.
     db.session.add(bookmark)
     db.session.commit()
 
-    return jsonify({"message": "Bookmark added successfully.",
-                    "makeBookmark": make_Bookmark}), 201
+    return jsonify({"message": "Bookmark added successfully.", "added": True}), 201
+
+
+
+@app.route('/api/v1/home', methods=['GET'])
+@login_required
+def matching_algorithm():
+    # Retrieve the current user's profile and interests
+    current_profile = db.session.execute(db.select(Profile).where(Profile.user_ID == current_user.user_ID)).scalar_one()
+    current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == current_user.user_ID)).scalars().all()
+
+    # Remove profiles already liked/disliked
+    removed_IDs = db.session.execute(db.select(Interaction.other_user_ID).where (Interaction.user_ID == current_user.user_ID)).scalars().all()
+
+    # Get all other users
+    potential_matches = db.session.execute(
+    db.select(User, Profile)
+    .join(Profile, Profile.user_ID == User.user_ID) 
+    .where(User.user_ID != current_user.user_ID)
+    .where(Profile.visibility_status == "Public")
+    .where(User.user_ID.notin_(removed_IDs))
+    ).all()
+
+    # Call matching algorithm
+    matches = []
+
+    for other, profile in potential_matches:
+        # Get user intesest
+        interests = db.session.execute(db.select(UserInterest.interest_ID). where(UserInterest.user_ID == other.user_ID))
+
+        score = calc_score(current_profile, current_interests, profile, interests)
+
+        matches.append({
+
+                "user_ID": other.user_ID,
+                "f_name": other.first_name,
+                "l_name": other.last_name,
+                "username": other.user_name,
+                "age": profile.age,
+                "bio": profile.bio,
+                "gender": profile.gender,
+                "location": profile.location,
+                "photo": f"/api/v1/images/{profile.picture_filename}",
+                "score": score,
+                "percentage": round(((score/11.5) * 100), 2) # FIX THIS
+            })
+        
+    sort = request.args.get('sort', 'desc')
+
+    matches.sort(key=lambda m: m["score"], reverse=(sort == 'desc'))
+    
+    return jsonify(matches),200 
+
+
+@app.route('/api/v1/home/<int:user_ID>', methods=['POST'])
+@login_required
+def rate_user(user_ID):
+    # Check that target user exists
+    target = db.session.execute(db.select(User).where(User.user_ID == user_ID)).scalar_one_or_none()
+    if not target:
+         return jsonify({'error': 'Profile not found'}), 404
+    
+    # Ensure that current_user has not already rated the target
+    has_interacted = db.session.execute(db.select(Interaction).where(Interaction.user_ID == current_user.user_ID, Interaction.other_user_ID == user_ID)).scalar_one_or_none()
+
+    if has_interacted:
+        return jsonify({
+                'message': 'You have already interacted with this user'
+            }), 400
+    
+    # Else add the interaction to the Interaction table
+    type = request.json.get('type')
+
+    like = Interaction(
+            user_ID = current_user.user_ID,
+            other_user_ID = user_ID,
+            type = type
+        )
+    db.session.add(like)
+    db.session.commit()
+
+    # If DISLIKE/PASS, do not check for a match
+    if type == 'Pass':
+        return jsonify({"message": "Action recorded", "matched": False}), 201
+    
+    # If LIKE check to see if the target user has liked the current user
+    mutual_like = db.session.execute(db.select(Interaction).where(Interaction.user_ID == user_ID, Interaction.other_user_ID == current_user.user_ID, Interaction.type == 'Like')).scalar_one_or_none()
+
+    # If they have not interacted or the DISLIKE/PASS return
+    if not mutual_like:
+        return jsonify({"message": "Action recorded", "matched": False}), 201
+    
+    # Else if a mutal like exists make an entry in the match table
+
+    # But first check if the match exists
+    existing_match = db.session.execute(db.select(Match).where(
+                db.or_(
+                    db.and_(Match.user_ID == current_user.user_ID, Match.match_user_ID == user_ID),
+                    db.and_(Match.user_ID == user_ID, Match.match_user_ID == current_user.user_ID))
+            )).scalar_one_or_none()
+
+    # Else make a new entry in the Match table
+    if not existing_match:
+        new_match = Match(
+            user_ID = current_user.user_ID,
+            match_user_ID = user_ID
+        )
+
+        new_chat = Chat(
+            user1_ID=current_user.user_ID,
+            user2_ID=user_ID)
+        
+        db.session.add(new_match)
+        db.session.add(new_chat)
+        db.session.commit()
+
+
+    # And add an entry to the chat table
+        
+
+    return jsonify({ 'success': f'You have a match!', "matched":True}), 201
+
+
+
+
+
 
 @app.route('/api/v1/matches', methods=['GET'])
 @login_required
-def matching_algorithm():
-
-    # This function takes the interests, location, age, gender and child preferences of the current user
-    # And calculates a score for every other user in the system based on how well they fit the requirements
-    # For each matching interest the score will increase by 0.5
-    # Gender and Age preference will have a weighting of 2
-    # Location will have a weighting of 3
-    # Child preference will have a weighting of 1
-
-
-    # PART 1 - Retreive the current user's preferences.
-    user = current_user
-
-    current_interests = db.session.execute(db.select(UserInterest.interest_ID).where(UserInterest.user_ID == user.user_ID)).scalars().all()
-    current_profile = db.session.execute(db.select(Profile).where(Profile.user_ID == user.user_ID)).scalar_one()
-
-
-    # PART 2 - Retrieve all other users
-    potential_matches = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == User.user_ID).where(User.user_ID != user.user_ID)).all()
-
-    match_lst = []
-    for other, profile in potential_matches:
-        #Set score
-        score = 0
-
-        # Get user interests
-        interests = db.session.execute(db.select(UserInterest.interest_ID). where(UserInterest.user_ID == other.user_ID))
-
-        # Algorithm
-        # Check how many interests are shared with the current user
-        shared = len(set(current_interests) & set(interests))
-        score += shared * 0.4
-
-        # Check location match
-        if current_profile.location == profile.location:
-            score += 2
-
-        # Check gender match
-        if current_profile.gender_preference == profile.gender:
-            score += 3
-        
-        # Check children match
-        if current_profile.wants_children == profile.wants_children:
-            score += 1.5
-
-        #Check relationship type match
-        if current_profile.relationship_type_preference == profile.relationship_type_preference:
-            score += 2
-
-        # Check age-range match
-        print(current_profile.age_preference)
-
-        # Add to lst
-        match_lst.append({
-
-            "user_ID": other.user_ID,
-            "f_name": other.first_name,
-            "l_name": other.last_name,
-            "username": other.user_name,
-            "age": profile.age,
-            "bio": profile.bio,
-            "gender": profile.gender,
-            "location": profile.location,
-            "photo": f"/api/v1/images/{profile.picture_filename}",
-            "score": score,
-            "percentage": round(((score/7) * 100), 2) # FIX THIS
-        })
-        
-
-
-        
-
-    match_lst.sort(key=lambda m: m["score"], reverse=True)
+def get_matches():
     
-    return jsonify(match_lst),200
+    # Get all rows that include the current user's ID
+    matches = db.session.execute(db.select(Match).where(
+        db.or_(
+            Match.user_ID == current_user.user_ID,
+            Match.match_user_ID == current_user.user_ID
+        )
+    )).scalars().all()
+
+    other_users = []
+
+    if matches:
+        for match in matches:
+            if match.user_ID == current_user.user_ID:
+                other_users.append(match.match_user_ID)
+            else:
+                other_users.append(match.user_ID)
+        
+        # Get Profiles
+
+        profiles = []
+
+        for user in other_users:
+            profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == User.user_ID).where(User.user_ID == user)).first()
+            user_obj, profile_obj = profile
+
+            profiles.append((user_obj, profile_obj))
+
+        return jsonify([{
+            "user_ID": user_obj.user_ID,
+            "username": user_obj.user_name,
+            "f_name": user_obj.first_name,
+            "l_name": user_obj.last_name,
+            "age": profile_obj.age,
+            "bio": profile_obj.bio,
+            "location": profile_obj.location,
+            "photo": f"/api/v1/images/{profile_obj.picture_filename}"
+        } for user_obj, profile_obj in profiles]), 200
+    
+    else:
+         return jsonify({'message': 'No Matches'}), 404
 
 
 
+# CHAT ROUTES
 
 
-
-
-@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
+@app.route('/api/v1/chats/<int:chat_ID>', methods=['GET'])
 @login_required
-def get_bookmarked_users(user_ID):
-    bookmarks = db.session.execute(db.select(Bookmarks)).where(Bookmarks.user_ID == user_ID).scalars().all()
+def get_chat_history(chat_ID):
+    messages = Message.query.filter_by(chat_ID=chat_ID).order_by(Message.timestamp.asc()).all()
+    
+    msg_lst = []
 
-    return jsonify(bookmarks = bookmarks), 200
+    for m in messages:
+        msg_lst.append({
+            'id': m.message_ID,
+            'sender_ID': m.sender_ID,
+            'content': m.content,
+            'timestamp': m.timestamp.strftime('%H:%M')
+        })
+
+    return jsonify({'messages': msg_lst}), 200
 
 
 
+@socketio.on('join')
+def join(data):
+    room= data['room']
+    join_room(room)
+    emit('status', {'message': 'Connected to chat'}, room=room)  
 
-@app.route('/api/v1/<int:user_ID>/bookmarks', methods=['GET'])
+
+# Send a mesage
+@socketio.on('send_message')
+def send_message(data):
+    # Save new message to db
+    message = Message(
+        chat_ID = data['chat_ID'],
+        sender_ID = data['sender_ID'],
+        content = data['content'] 
+    )
+
+    db.session.add(message)
+    db.session.commit()
+
+    # Send message to chat room
+    emit('receive_message',{
+        'sender_ID': data['sender_ID'],
+        'content': data['content'],
+        'timestamp': message.timestamp.strftime('%H:%M'),
+        'room': data['room']
+    }, room = data['room'])
+
+
+
+# Route for loading all chats
+@app.route('/api/v1/chats', methods=['GET'])
 @login_required
-def get_bookmarks(user_ID):
-    bookmarks = db.session.execute(
-        db.select(Profile)).join(Bookmarks, Bookmarks.profile_ID == Profile.profile_ID).where(Bookmarks.user_ID == user_ID).scalars().all()
+def get_chats():
 
-    return jsonify(bookmarks = bookmarks), 200
+    # Find all chats where that include the current user's ID
+    chats = Chat.query.filter(
+        (Chat.user1_ID == current_user.user_ID) |
+        (Chat.user2_ID == current_user.user_ID)
+    ).all()
 
+    chat_lst = []
+
+    for c in chats:
+        # Get the other user
+        matched_user_ID = c.user2_ID if c.user1_ID == current_user.user_ID else c.user1_ID
+        matched_user = User.query.get(matched_user_ID)
+        matched_profile = Profile.query.filter_by(user_ID = matched_user_ID).first()
+
+
+        # Get the last message to display on closed chat
+        last_msg = Message.query.filter_by(chat_ID = c.chat_ID).order_by(Message.timestamp.desc()).first()
+
+        chat_lst.append({
+            'chat_ID':c.chat_ID,
+            'matched_user_ID': matched_user_ID,
+            'matched_user_name': f"{matched_user.first_name} {matched_user.last_name}",
+            'photo': matched_profile.picture_filename,
+            'last_msg': last_msg.content if last_msg else 'Start chatting!',
+            'last_msg_time': last_msg.timestamp.strftime('%H:%M') if last_msg else ''
+
+
+        })
+
+    return jsonify({'chats': chat_lst}), 200
 
 
 
@@ -478,7 +692,7 @@ def get_interests():
     print("interests: ", interests)
 
     return jsonify([
-        {"id": i.interest_ID, "name": i.name}
+        {"id": i.interest_ID, "name": i.interest_name}
         for i in interests
     ])
 
@@ -488,6 +702,7 @@ def get_interests():
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 
 # CSRF
@@ -512,22 +727,6 @@ def unauthorized():
 # The functions below should be applicable to all Flask apps.
 ###
 
-# Helper functions
-"""Takes the Enum age range and minds the minimum and maximum values"""
-def split_age_range(preference):
-    if preference.startswith(">"):
-        min = 41
-        max = None
-        return min, max
-    range = preference.split("-")
-    min = int(range[0])
-    max = int(range[1])
-    return min, max
-
-def is_preference(age, preference):
-    min, max = split_age_range(preference)
-
-    if max is None: return age
 
 # Here we define a function to collect form errors from Flask-WTF
 def form_errors(form):
@@ -565,5 +764,7 @@ def add_header(response):
 @app.errorhandler(404)
 def page_not_found(error):
     """Custom 404 page."""
-    return render_template('404.html'), 404
+    return jsonify({'error': 'Not found'}), 404
 
+if __name__ == '__main__':
+    socketio.run(app, debug=True)

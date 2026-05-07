@@ -83,7 +83,7 @@ function logout(){
               <RouterLink class="nav-link" to="/community_guidelines">Community Guidelines</RouterLink>
             </li>
             <li class="nav-item mx-3" v-if="authStore.isLoggedIn">
-              <RouterLink class="nav-link" to="/my_profile">My Profile</RouterLink>
+              <RouterLink class="nav-link" to="/profile/me">My Profile</RouterLink>
             </li>
              <li class="nav-item mx-3" v-if="authStore.isLoggedIn">
               <RouterLink class="nav-link" to="/search_profiles">Search Profiles</RouterLink>

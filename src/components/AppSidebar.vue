@@ -1,13 +1,27 @@
 <script setup>
-  const first_name = localStorage.getItem("first_name");
+
+  import { useAuthStore } from '../stores/auth';
+  const authStore = useAuthStore();
+  let first_name = authStore.firstName;
+  
+  
+  function getInitials(){
+  if(!authStore.firstName || !authStore.lastName){
+    return '?'
+  }
+  return  authStore.firstName[0] + authStore.lastName[0]
+
+}
+
   
 </script>
 
 <template>
   <aside class="nav-bar">
 
-    <div class="user">
-       <img src="/images/profile.jpg" alt="pic">
+    <div class="user"><!--Add a V-IF-->
+      <div class="user_icon">{{ getInitials() }}</div>
+       <!--<img src="/images/profile.jpg" alt="pic">-->
       <div class="name">Hi {{ first_name }}!</div>
      
     </div>
@@ -24,6 +38,9 @@
         </li>
         <li>
           <RouterLink to="/bookmarks" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
+        </li>
+        <li>
+          <RouterLink to="/chats" class=""><i class="fa-solid fa-message"></i>Chats</RouterLink>
         </li>
       </ul>
 
@@ -97,6 +114,12 @@
 
     }
 
+    .links li a.router-link-active{
+      background-color:  rgb(238, 219, 243); 
+      padding: 15px;
+      
+    }
+
     .links li a:hover{
       background-color:  rgb(238, 219, 243); 
       padding: 15px;
@@ -125,6 +148,19 @@
 
     hr{
       color:  rgb(85, 13, 103);
+    }
+
+    .user_icon{
+      display: flex;
+      align-items: center;
+      justify-content:center;
+      font-size: 30px;
+      font-weight: 500;
+      color: white;
+      background-color: #9d73ac;
+      height: 100px;
+      width:100px;
+      border-radius: 50px;
     }
 
   

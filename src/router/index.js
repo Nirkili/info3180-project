@@ -51,9 +51,16 @@ const router = createRouter({
     },
 
     {
-      path: '/my_profile',
+      path: '/profile/me',
       name: 'my_profile',
-      component: () => import('../views/Profile.vue'),
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true }
+    },
+
+    {
+      path: '/profile/:id',
+      name: 'user_profile',
+      component: () => import('../views/ProfileView.vue'),
       meta: { requiresAuth: true }
     },
 
@@ -79,9 +86,9 @@ const router = createRouter({
     },
 
     {
-      path: '/messages',
-      name: 'messages',
-      component: () => import('../views/MessagesView.vue'),
+      path: '/chats',
+      name: 'chats',
+      component: () => import('../views/ChatsView.vue'),
       meta: { requiresAuth: true }
     }
 
@@ -125,26 +132,5 @@ router.beforeEach(async(to, form, next) =>{
   }
 })
 
-/*router.beforeEach(async (to, from, next) => {
-  if (to.meta.requiresAuth) {
-    try {
-      const response = await fetch('/api/v1/auth/status', {
-        credentials: 'include'
-      })
-      const data = await response.json()
-
-      if (data.logged_in) {
-        next()
-      } else {
-        next('/login')
-      }
-    } catch (error) {
-      next('/login')
-    }
-  } else {
-    next()
-  }
-
-})*/
 
 export default router

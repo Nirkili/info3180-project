@@ -4,7 +4,9 @@ import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
 import { ref } from 'vue';
+import { useAuthStore } from '@/stores/auth';  
 
+const authStore = useAuthStore();
 const route = useRoute()
 const router = useRouter()
 const isRouterReady = ref(false)
@@ -21,7 +23,7 @@ const hideSidebarOn = ['login', 'register_user', 'register_interest', 'about', '
     <AppSidebar v-if="!hideSidebarOn.includes(route.name)"/>
 
     <main :class="['main-content', { 'noBackground': $route.meta.noBackground }]">
-    <RouterView />
+    <RouterView :key="authStore.userID"/>
   </main>
 
   </div>
@@ -47,7 +49,9 @@ body{
 .main-content {
   flex: 1;
   background-color: none;
-  padding: 20px;
+  padding: 0;
+  padding: 10px 10px;
+  margin: 0;
   border-radius: 20px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   height: 100%;

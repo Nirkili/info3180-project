@@ -1,10 +1,12 @@
 <script setup>
 // Register user functionality
 
-import { ref, onMounted, computed } from "vue"
-import { useRouter } from "vue-router"
+import { ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from '../stores/auth';
 
-const router = useRouter()
+const router = useRouter();
+const authStore = useAuthStore();
 
 // Declaration of reactive variables
 let csrf_token = ref("")
@@ -25,6 +27,7 @@ let relationship_preference = ref("")
 let wants_children = ref("")
 let age_preference = ref("")
 let radius_preference = ref("")
+let location = ref("")
 
 // Fetches CSRF Token when the page loads
 onMounted(() => {
@@ -64,7 +67,7 @@ const isFormValid = computed(() => {
 function register() {
   errorMessages.value = []
 
-  // extra safety check
+  // Extra safety check
   if (!isFormValid.value) {
     errorMessages.value.push({
       field: "form",
@@ -76,6 +79,7 @@ function register() {
   // Creating a new form and adding submitted user information to it
   let form_data = new FormData()
 
+  
   form_data.append('username', username.value)
   form_data.append('first_name', first_name.value)
   form_data.append('last_name', last_name.value)
@@ -89,6 +93,7 @@ function register() {
   form_data.append('wants_children', wants_children.value)
   form_data.append("age_preference", age_preference.value)
   form_data.append("radius_preference", radius_preference.value)
+  form_data.append('location', location.value)
 
   // Sends form to the backend to be committed to the database
   fetch('/api/v1/auth/register_user', {
@@ -108,8 +113,14 @@ function register() {
     .then(data => {
       if (data.errors) {
         errorMessages.value = data.errors
-      } else {
-        successMessage.value = data.message
+      } 
+      
+      else {
+
+        // Set user session
+        authStore.setLoggedIn(data.user_id, data.first_name, data.last_name)
+        successMessage.value = data.message;
+      
 
         // Store user_id for next step in registration
         localStorage.setItem("user_id", data.user_id)
@@ -140,28 +151,43 @@ function register() {
           <input type="text" v-model="username" placeholder="Username" />
           <input type="text" v-model="first_name" placeholder="First Name" />
           <input type="text" v-model="last_name" placeholder="Last Name" />
+          <input type="date" v-model="birthdate" />
           <input type="password" v-model="password" placeholder="Password" />
           <input type="password" v-model="confirmation" placeholder="Confirm Password" />
           <input type="text" v-model="email" placeholder="Email" />
+          
         </div>
 
         <!-- Column 2 -->
         <div class="section">
-
-          <div class="sub-section">
-
-          <input type="date" v-model="birthdate" placeholder="Birthdate"/>
       
-          <select v-model="gender">
-            <option disabled value="">Select Your Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Non-binary">Non-binary</option>
-          </select>
-
-          </div>
-          
          
+            
+
+            <select v-model="gender">
+              <option disabled value="">Select Your Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-binary">Non-binary</option>
+            </select>
+         
+
+          <select v-model="location">
+            <option disabled value="">Location</option>
+              <option value = "Kingston">Kingston</option>
+              <option value = "St.Andrew">St.Andrew</option>
+              <option value = "St.Thomas">St.Thomas</option>
+              <option value = "Portland">Portland</option>
+              <option value = "Trelawny">Trelawny</option>
+              <option value = "Clarendon">Clarendon</option>
+              <option value = "Manchester">Manchester</option>
+              <option value = "St.Elizabeth">St.Elizabeth</option>
+              <option value = "Westmoreland">Westmoreland</option>
+              <option value = "Hanover">Hanover</option>
+              <option value = "St.Mary">St.Mary</option>
+              <option value = "St.Ann">St.Ann</option>
+              <option value = "St.James">St.James</option>
+          </select>
 
           <select v-model="gender_preference">
             <option disabled value="">Select Your Gender Preference</option>
@@ -195,11 +221,9 @@ function register() {
             <option value="25">25 km</option>
             <option value="50">50 km</option>
             <option value="100">100 km</option>
-            <option value="300">300 km</option>
+            <option value="250">250 km</option>
           </select>
-  
-          </div>
-         
+        </div>
 
       </div>
 
@@ -219,7 +243,7 @@ function register() {
 
     </form>
 
-    <!-- Link to registration for new users -->
+    <!-- Link to login for returning users -->
     <p>
       Already have an account?
       <router-link :to="{ name: 'login' }">Login</router-link>
@@ -228,73 +252,77 @@ function register() {
   </div>
 </template>
 
+
 <style scoped>
-h1 {
-    padding-top: 20px;
-}
-
-
 .container {
-    display: flex;
-    flex-direction: column;
-    /*margin-top: 80px;*/
-    margin-bottom: 80px;
-    background-color: white;
-    padding: 20px;
-    border-radius: 20px;
-    align-items: center;
-    width: 50%;
-}
-
-
-.section {
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    gap: 15px;
- 
-}
-
-.sub-section {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  margin-bottom: 80px;
+  background-color: white;
   padding: 20px;
-  gap: 15px;
-   
+  border-radius: 20px;
+  align-items: center;
+  width: 50%;
 }
 
 .labels {
-    display: flex;
-    flex-direction: row;
-    height: 200px;
-    padding-bottom: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  width: 100%;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+h1 {
+  padding-bottom: 15px;
 }
 
 form {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-    align-items: center;
-    height: 200%;
-}
-
-button {
-    border-radius: 20px;
-    background-color: #9a60ab;
-    color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 15px;
 }
 
 input, select {
-    border-radius: 20px;
-    height: 80px;
-        width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
+  border-radius: 20px;
+  height: 45px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+button {
+  border-radius: 20px;
+  background-color: #9a60ab;
+  color: white;
+  padding: 10px 20px;
 }
 
 a {
   color: #9a60ab;
   text-decoration: none;
   font-weight: bold;
+}
+
+/* Mobile: stack everything */
+@media (max-width: 768px) {
+  .labels {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .container {
+    width: 90%;
+  }
 }
 </style>

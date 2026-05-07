@@ -19,6 +19,10 @@ def validate_age(form, field):
 
 
 class RegisterForm(FlaskForm):
+
+  class Meta:
+    csrf = False
+  
   first_name = StringField('First Name', validators=[InputRequired()])
   last_name = StringField('Last Name', validators=[InputRequired()]) 
 
@@ -35,6 +39,24 @@ class RegisterForm(FlaskForm):
     ('Female',     'Female'),
     ('Male',       'Male'),
     ('Non-binary', 'Non-binary')
+  ], validators=[InputRequired()])
+
+  location = SelectField('Location', choices=[
+    ('', 'Select Parish'),
+    ('Kingston',        'Kingston'),
+    ('St.Andrew',      'St.Andrew'),
+    ('St.Thomas',      'St.Thomas'),
+    ('Portland',        'Portland'),
+    ('St.Mary',        'St.Mary'),
+    ('St.Ann',         'St.Ann'),
+    ('Trelawny',        'Trelawny'),
+    ('St.James',       'St.James'),
+    ('Hanover',         'Hanover'),
+    ('Westmoreland',    'Westmoreland'),
+    ('St.Elizabeth',   'St.Elizabeth'),
+    ('Manchester',      'Manchester'),
+    ('Clarendon',       'Clarendon'),
+    ('St.Catherine',   'St.Catherine'),
   ], validators=[InputRequired()])
 
   gender_preference = SelectField('Interested In', choices=[
@@ -55,7 +77,7 @@ class RegisterForm(FlaskForm):
     ('18-24', '18–24'),
     ('25-29', '25–29'),
     ('30-40', '30–40'),
-    ('>41', '41+')
+    ('>40', '41+')
   ], validators=[InputRequired()])
 
   wants_children = SelectField('Do You Want Children?', choices=[
@@ -63,8 +85,6 @@ class RegisterForm(FlaskForm):
       ('Wants Children', 'Wants Children'),
       ('Does Not Want Children', 'Does Not Want Children')
   ], validators=[InputRequired()])
-
-
   
   
 
@@ -106,6 +126,22 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
         ('Female',     'Female'),
         ('Male',       'Male'),
         ('Non-binary', 'Non-binary')
+    ], validators=[InputRequired()])
+
+    age_preference = SelectField('Age Preference', choices=[
+      ('', 'Select an option'),
+      ('18-24', '18-24'),
+      ('25-29', '25-29'),
+      ('30-40', '30-40'),
+      ('>41', '>41')
+    ])
+
+    location_radius_preference = SelectField('Radius', choices=[
+      ('', 'Select and option'),
+      ('25', 'Within 25km'),
+      ('50', 'Within 50km'),
+      ('100', 'Within 100km'),
+      ('300', "Island Wide")
     ], validators=[InputRequired()])
 
     wants_children = SelectField('Do You Want Children?', choices=[

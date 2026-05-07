@@ -5,42 +5,6 @@ from datetime import datetime, timedelta
 from datetime import date
 from flask_login import UserMixin
 
-# ENUM CLASSES
-class Gender(str, enum.Enum):
-  FEM = "Female"
-  MALE = "Male"
-  NB = "Non-binary"
-  
-class VisibilityStatus(str, enum.Enum):
-  PRIVATE = "Private"
-  PUBLIC = "Public"
-
-class RelationshipPreference(str, enum.Enum):
-  CASUAL = "Casual"
-  SERIOUS = "Serious"
-  
-class ChildrenPreference(str, enum.Enum):
-  DOES_WANT = "Wants Children"
-  DOES_NOT = "Does Not Want Children"
-
-class LikeType(str, enum.Enum):
-  LIKE = "Like"
-  PASS = "Pass"
-
-class AgePreference(str, enum.Enum):
-  Young_Adult = '18-24'
-  Adult = '25-29'
-  MiddleAged = '30-40'
-  Old = '>41'
-
-class LocationRangePreference(str, enum.Enum):
-  NEAR = "25"
-  MID = "50"
-  FAR = "100"
-  ISLAND_WIDE = "250"
-
-  
-  
 
 
 
@@ -68,7 +32,6 @@ class User(db.Model, UserMixin): # Base User Class
 
 
   profile = db.relationship('Profile', backref='user', uselist=False)
- 
 
   def get_id(self):
     return str(self.user_ID)
@@ -87,20 +50,23 @@ class Profile(db.Model):
   
   # Other User Details
   date_of_birth = db.Column(db.Date, nullable=False)
-  gender = db.Column(postgresql.ENUM(Gender, name="gender"), nullable=False)
+  gender = db.Column(db.Enum('Female', 'Male', 'Non-binary', name = "gender"), nullable = False)
   bio = db.Column(db.Text)
-  
+  education = db.Column(db.String(255))
+  job = db.Column(db.String(255))
+  relationship_status = db.Column(db.Enum('Single', 'Open Relationship', 'Married', name='relationship_status'))
+
   location = db.Column(db.String(100), nullable=False, index=True)
-  visibility_status = db.Column(postgresql.ENUM(VisibilityStatus, name = "account_status"), nullable = False)
+  visibility_status = db.Column(db.Enum('Private', 'Public', name = "account_status"), nullable = False)
   
   picture_filename = db.Column(db.String(100), nullable=False)
   
   # Preferences 
-  gender_preference = db.Column(postgresql.ENUM(Gender, name = "gender_preference"), nullable = False)
-  wants_children = db.Column(postgresql.ENUM(ChildrenPreference, name = "children_preference"), nullable = False)
-  relationship_type_preference = db.Column(postgresql.ENUM(RelationshipPreference, name = "relationship_preference"), nullable = False)
-  age_preference = db.Column(postgresql.ENUM(AgePreference, name ="age_preference"), nullable = False)
-  radius_preference = db.Column(db.Enum('25', '50', '100', '300', name='location_preference'), nullable=False, default='100')
+  gender_preference = db.Column(db.Enum('Female', 'Male', 'Non-binary', name = "gender_preference"), nullable = False)
+  wants_children = db.Column(db.Enum('Wants Children', 'Does Not Want Children', name = "children_preference"), nullable = False)
+  relationship_type_preference = db.Column(db.Enum('Casual', 'Serious', name = "relationship_preference"), nullable = False)
+  age_preference = db.Column(db.Enum('18-24', '25-29', '30-40', '>40', name ="age_preference"), nullable = False)
+  radius_preference = db.Column(db.Enum('25', '50', '100', '250', name='location_preference'), nullable=False, default='100')
 
   @property
   def age(self):
@@ -116,7 +82,7 @@ class Interest(db.Model):
   __tablename__ = 'Interest'
   
   interest_ID = db.Column(db.Integer, primary_key=True)
-  name = db.Column(db.String(100), nullable=False)
+  interest_name = db.Column(db.String(100), nullable=False)
 
 # USER INTEREST CLASS
 class UserInterest(db.Model):
@@ -129,15 +95,14 @@ class UserInterest(db.Model):
 
 
 # LIKES CLASS
-class Likes(db.Model):
+class Interaction(db.Model):
 
   __tablename__ = 'Likes'
-  
-  like_ID = db.Column(db.Integer, primary_key=True)
-  user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True)
-  liked_user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True)
 
-  type = db.Column(db.Enum(LikeType, name="like_type", values_callable=lambda x: [e.value for e in x]), nullable=False)
+  user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True, primary_key=True)
+  other_user_ID = db.Column(db.Integer, db.ForeignKey('User.user_ID'), nullable=False, index=True, primary_key = True)
+
+  type = db.Column(db.Enum('Like', 'Pass', name="interaction-type"), nullable=False)
 
   created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -190,3 +155,4 @@ class Message (db.Model):
 
   content = db.Column(db.Text, nullable = True)
   timestamp = db.Column(db.DateTime, default=datetime.now)
+

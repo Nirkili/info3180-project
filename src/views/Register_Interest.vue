@@ -103,8 +103,12 @@ function submitInterests() {
     <p v-if="error">{{ error }}</p>
 
     <!-- Ensures submission can only be done when at least 3 interests are selected -->
-    <button :disabled="!isValid" @click="submitInterests">
-        Submit Interests
+    <button
+      class="btn btn-secondary"
+      :disabled="!isValid"
+      @click="submitInterests"
+    >
+      Submit Interests
     </button>
 
   </div>
@@ -119,17 +123,25 @@ h1 {
 
 
 .container {
-    display: flex;
-    flex-direction: column;
-    /*margin-top: 80px;*/
-    margin-bottom: 80px;
-    background-color: rgb(65, 153, 159);
-    padding: 20px;
-    border-radius: 20px;
-    align-items: center;
-    width: 50%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 80px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 20px;
+  align-items: center;
+  width: 50%;
 }
 
+.interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  width: 100%;
+  padding-bottom: 25px;
+  padding-top: 15px;
+}
 
 button {
     border-radius: 20px;
@@ -138,14 +150,13 @@ button {
     gap: 15px;
 }
 
-input, select {
-    border-radius: 20px;
-    height: 80px;
-        width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    gap: 10px;
-}
+.interest-btn {
+ border-radius: 20px;
+    background-color: gray;
+
+    color: white;
+    gap: 15px;
+};
 
 a {
   color: #9a60ab;
@@ -158,8 +169,8 @@ a {
 }
 
 .interest-btn.selected {
-  background-color: #6c63ff;
+  background-color: #E95DA1;
   color: white;
-  border-color: #6c63ff;
+  border-color: #E95DA1;
 }
 </style>

@@ -9,34 +9,51 @@ defineProps({
 </script>
 
 <template>
-  <div class = "card">
-            <div class = "imgContainer">
-                <img :src = "user.photo" alt = "profile picture"/>
-            </div>
-            <div class = "card-title">
-                <p>{{ user.f_name }} {{ user.l_name }}, {{ user.age }}</p>
-            </div>      
-            <div class = "card-body">
-                <p class = "card-subtitle text-muted">@{{ user.username }}</p>
-                <p>{{ user.gender }}</p>
-                <p>{{ user.location }}</p>
-                <p v-if="user.percentage">{{ user.percentage }}%</p>
-            </div>
-            <div class="interaction">
-                <slot></slot>
-            </div>
+    <div class = "card">
+        <div class = "imgContainer">
+            <img :src = "user.photo" alt = "profile picture"/>
         </div>
+
+        <div class = "card-title">
+            <p>{{ user.f_name }} {{ user.l_name }}, {{ user.age }}</p>
+        </div>      
+        <div class = "card-body">
+        
+            <p class = "card-subtitle text-muted">@{{ user.username }}</p>
+            <p>{{ user.gender }}</p>
+            <p>{{ user.location }}</p>
+            <p><i >"{{ user.bio }}"</i></p>
+            <p v-if="user.percentage">{{ user.percentage }}%</p>
+        </div>        
+    
+        <div class="interaction">
+            <slot></slot>
+        </div>
+    </div>
+
   </template>
 
-  <style>
+<style scoped>
+    .container{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        width: 100%;
+        margin: 0 auto;
+    }
 
-  .card{
+    @media (min-width: 1024px) {
+    .container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+    .card{
         padding: 20px;
         align-items: center;
         display: flex;
         flex-direction: column;
         justify-content: center;
-
         max-width: 100%;
         box-sizing: border-box;
         overflow: hidden;     
@@ -68,11 +85,6 @@ defineProps({
         height: auto;
         border-radius: 10px;
         object-fit: cover;
-    }
-
-    a:hover{
-        background-color: red;
-
     }
 
 
