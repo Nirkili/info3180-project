@@ -29,6 +29,14 @@ let age_preference = ref("")
 let radius_preference = ref("")
 let location = ref("")
 
+// Computed property to calculate 18 years ago from current date
+const eighteenYearsAgo = computed(() => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 18);
+  // Fix format as YYYY-MM-DD
+  return date.toISOString().split('T')[0];
+});
+
 // Fetches CSRF Token when the page loads
 onMounted(() => {
   getCsrfToken()
@@ -151,7 +159,7 @@ function register() {
           <input type="text" v-model="username" placeholder="Username" />
           <input type="text" v-model="first_name" placeholder="First Name" />
           <input type="text" v-model="last_name" placeholder="Last Name" />
-          <input type="date" v-model="birthdate" />
+          <input type="date" v-model="birthdate" :max="eighteenYearsAgo" />
           <input type="password" v-model="password" placeholder="Password" />
           <input type="password" v-model="confirmation" placeholder="Confirm Password" />
           <input type="text" v-model="email" placeholder="Email" />
@@ -161,17 +169,13 @@ function register() {
         <!-- Column 2 -->
         <div class="section">
       
-         
-            
-
             <select v-model="gender">
               <option disabled value="">Select Your Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
               <option value="Non-binary">Non-binary</option>
             </select>
-         
-
+        
           <select v-model="location">
             <option disabled value="">Location</option>
               <option value = "Kingston">Kingston</option>
@@ -254,75 +258,64 @@ function register() {
 
 
 <style scoped>
-.container {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 80px;
-  background-color: white;
-  padding: 20px;
-  border-radius: 20px;
-  align-items: center;
-  width: 50%;
-}
-
-.labels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  width: 100%;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-h1 {
-  padding-bottom: 15px;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  align-items: center;
-  width: 100%;
-  padding-bottom: 15px;
-}
-
-input, select {
-  border-radius: 20px;
-  height: 45px;
-  padding: 0 10px;
-  width: 100%;
-}
-
-button {
-  border-radius: 20px;
-  background-color: #9a60ab;
-  color: white;
-  padding: 10px 20px;
-}
-
-a {
-  color: #9a60ab;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-/* Mobile: stack everything */
-@media (max-width: 768px) {
-  .labels {
-    grid-template-columns: 1fr;
-  }
-
-  .row {
-    grid-template-columns: 1fr;
-  }
-
+  /* ---- Main Container Design ---- */
   .container {
-    width: 90%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 80px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 20px;
+    align-items: center;
+    width: 50%;
   }
-}
+
+  h1 {
+    padding-bottom: 15px;
+  }
+
+  /* ---- Form Design ---- */
+  .labels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    width: 100%;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 15px;
+  }
+
+  input, select {
+    border-radius: 20px;
+    height: 45px;
+    padding: 0 10px;
+    width: 100%;
+  }
+
+  /* ---- Button Design ---- */
+  button {
+    border-radius: 20px;
+    background-color: #9a60ab;
+    color: white;
+    padding: 10px 20px;
+  }
+
+  a {
+    color: #9a60ab;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
 </style>

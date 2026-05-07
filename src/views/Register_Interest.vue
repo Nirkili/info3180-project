@@ -117,11 +117,8 @@ function submitInterests() {
 
 
 <style scoped>
-h1 {
-    padding-top: 20px;
-}
 
-
+/* ---- Main Container Design ---- */
 .container {
   display: flex;
   flex-direction: column;
@@ -133,6 +130,11 @@ h1 {
   width: 50%;
 }
 
+h1 {
+    padding-top: 20px;
+}
+
+/* ---- Interests Section Design ---- */
 .interests {
   display: flex;
   flex-wrap: wrap;
@@ -143,6 +145,7 @@ h1 {
   padding-top: 15px;
 }
 
+/* ---- Button Design ---- */
 button {
     border-radius: 20px;
     background-color: #9a60ab;
@@ -150,22 +153,21 @@ button {
     gap: 15px;
 }
 
-.interest-btn {
- border-radius: 20px;
-    background-color: gray;
-
-    color: white;
-    gap: 15px;
-};
-
 a {
   color: #9a60ab;
   text-decoration: none;
   font-weight: bold;
 }
 
+.interest-btn {
+  border-radius: 20px;
+  background-color: gray;
+  color: white;
+  gap: 15px;
+};
+
 .interest-btn:hover {
-  border-color: #888;
+  border-color: gray;
 }
 
 .interest-btn.selected {
