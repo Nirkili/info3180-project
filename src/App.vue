@@ -3,8 +3,9 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
-import { ref } from 'vue';
-import { useAuthStore } from '@/stores/auth';  
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+
 
 const authStore = useAuthStore();
 const route = useRoute()
@@ -13,6 +14,7 @@ const isRouterReady = ref(false)
 router.isReady().then(() => isRouterReady.value = true)
 
 const hideSidebarOn = ['login', 'register_user', 'register_interest', 'about', 'community_guidelines']
+
 </script>
 
 <template>

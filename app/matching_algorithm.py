@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Written by Dana Archer
 import math
 from haversine import haversine, Unit
@@ -123,7 +122,6 @@ def calc_score(current_profile, current_interests, profile, interests):
   if current_profile.wants_children == profile.wants_children:
      base_score += 0.5
 
-=======
 # Written by Dana Archer
 import math
 from haversine import haversine, Unit
@@ -248,5 +246,4 @@ def calc_score(current_profile, current_interests, profile, interests):
   if current_profile.wants_children == profile.wants_children:
      base_score += 0.5
 
->>>>>>> origin/Jaden
   return base_score

@@ -28,7 +28,6 @@ def register():
     form = RegisterForm()
 
     if form.validate():
-        print("Form passed validation")
 
         # Get form Data
         username = form.username.data
@@ -152,7 +151,11 @@ def logout():
 @app.route('/api/v1/auth/status', methods=['GET'])
 def auth_status():
     if current_user.is_authenticated:
-        return jsonify({'logged_in': True, 'user_id': current_user.user_ID}), 200
+        return jsonify({'logged_in': True,
+                        'user_id': current_user.user_ID,
+                        'first_name': current_user.first_name,
+                        'last_name': current_user.last_name}), 200
+    
     return jsonify({'logged_in': False}), 200
 
 
@@ -184,8 +187,11 @@ def get_my_profile():
         'picture':                       profile.picture_filename,
         'gender_preference':             profile.gender_preference,
         'wants_children':                profile.wants_children,
-        'relationship_preference':  profile.relationship_type_preference,
-        'age_preference':           profile.age_preference,
+        'relationship_type_preference':  profile.relationship_type_preference,
+        'relationship_status':           profile.relationship_status,
+        'education':                     profile.education,
+        'job':                           profile.job,
+        'age_preference':                profile.age_preference,
         'age':                           profile.age,
         'interests':                     [i.interest_name for i in interests]
     }), 200
@@ -211,18 +217,22 @@ def update_profile():
             profile.location = form.location.data
             profile.gender = form.gender.data
             profile.gender_preference = form.gender_preference.data
+            profile.age_preference = form.age_preference.data
             profile.wants_children = form.wants_children.data
             profile.visibility_status = form.visibility_status.data
             profile.relationship_type_preference = form.relationship_type_preference.data
+            profile.relationship_status = form.relationship_status.data
+            profile.education = form.education.data
+            profile.job = form.job.data
             
-            # Profile picture
+            '''# Profile picture
             picture = form.picture.data
 
             if picture: # If a file has been added
                 filename = secure_filename(picture.filename)
                 upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 picture.save(upload_path)
-                profile.picture_filename = filename
+                profile.picture_filename = filename'''
             
             db.session.commit()
             return jsonify({
@@ -237,12 +247,23 @@ def update_profile():
 
 
 
-@app.route('/api/v1/profile/<int:profile_id>', methods=['GET'])
+@app.route('/api/v1/profile/<int:user_id>', methods=['GET'])
 @login_required
-def get_profile(profile_id):
+def get_profile(user_id):
 
-    # Query the profile
-    user, profile = db.session.execute(db.select(User, Profile).join(Profile, Profile.user_ID == profile_id)).scalar_one()
+    # Get the user information
+    user = db.session.execute(db.select(User).filter_by(user_ID=user_id)).scalar_one()
+    if not user:
+        return jsonify({'error': 'User not found'})
+
+   # Query the profile table
+    profile = db.session.execute(db.select(Profile).filter_by(user_ID = user_id)).scalar_one()
+
+    if not user:
+        return jsonify({'error': 'Profile not found'})
+
+    interests = db.session.execute(db.select(Interest).join(UserInterest, UserInterest.interest_ID == Interest.interest_ID).where(UserInterest.user_ID == user_id).distinct()).scalars().all()
+
 
     if profile: #If the profile exists, return all information
         return jsonify({
@@ -259,8 +280,13 @@ def get_profile(profile_id):
         'picture':                       profile.picture_filename,
         'gender_preference':             profile.gender_preference,
         'wants_children':                profile.wants_children,
-        'relationship_type_preference':  profile.relationship_type_preference,
-        'age':                           profile.age
+        'relationship_preference':       profile.relationship_type_preference,
+        'relationship_status':           profile.relationship_status,
+        'education':                     profile.education,
+        'job':                           profile.job,
+        'age_preference':                profile.age_preference,
+        'age':                           profile.age,
+        'interests':                     [i.interest_name for i in interests]
     }), 200
 
     return jsonify({'error': 'Profile not found'}), 404
@@ -293,8 +319,8 @@ def search_users():
         
     if filt1 and filt1 != "none":
         today = date.today()
-        if filt1 == ">41":
-            max_dob = today - timedelta(days=42 * 365.25)
+        if filt1 == ">40":
+            max_dob = today - timedelta(days=41 * 365.25)
             current = current.filter(Profile.date_of_birth <= max_dob)
         else:
             start, end = map(int, filt1.split("-"))
@@ -662,13 +688,34 @@ def get_chats():
     return jsonify({'chats': chat_lst}), 200
 
 
-
-# Used when the User sets their interests right after registering
 @app.route('/api/v1/profile/interest', methods = ['POST'])
 @login_required
 def set_interests():
     data = request.json
     selected_ids = data.get("interest_ids", [])
+    print(selected_ids)
+
+    if len(selected_ids) < 3 or len(selected_ids) > 5:
+        return {"error": "Select between 3 and 5 interests"}, 400
+
+    for i in selected_ids:
+        user_interest = UserInterest(user_ID = current_user.user_ID, interest_ID=i)
+        db.session.add(user_interest)
+        print("added!")
+
+    db.session.commit()
+    print("YES")
+
+    return {"message": "Interests saved"}, 200
+
+
+'''# Used when the User sets their interests right after registering
+@app.route('/api/v1/profile/interest', methods = ['POST'])
+@login_required
+def set_interests():
+    data = request.json
+    selected_ids = data.get("interest_ids", [])
+    print(selected_ids)
 
     if len(selected_ids) < 3 or len(selected_ids) > 5:
         return {"error": "Select between 3 and 5 interests"}, 400
@@ -681,7 +728,7 @@ def set_interests():
 
     db.session.commit()
 
-    return {"message": "Interests saved"}, 200
+    return {"message": "Interests saved"}, 200'''
 
 
 # Retrieves all interests from the database

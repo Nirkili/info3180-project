@@ -112,21 +112,23 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
     ('Manchester',      'Manchester'),
     ('Clarendon',       'Clarendon'),
     ('St. Catherine',   'St. Catherine'),
-  ], validators=[InputRequired()])
+  ])
+    
 
-    gender = SelectField('Gender', choices=[
+
+    """gender = SelectField('Gender', choices=[
     ('', 'Select gender'),
     ('Female',     'Female'),
     ('Male',       'Male'),
     ('Non-binary', 'Non-binary')
-  ], validators=[InputRequired()])
+  ], validators=[InputRequired()])"""
 
     gender_preference = SelectField('Interested In', choices=[
         ('', 'Select preference'),
         ('Female',     'Female'),
         ('Male',       'Male'),
         ('Non-binary', 'Non-binary')
-    ], validators=[InputRequired()])
+    ])
 
     age_preference = SelectField('Age Preference', choices=[
       ('', 'Select an option'),
@@ -135,14 +137,6 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
       ('30-40', '30-40'),
       ('>41', '>41')
     ])
-
-    location_radius_preference = SelectField('Radius', choices=[
-      ('', 'Select and option'),
-      ('25', 'Within 25km'),
-      ('50', 'Within 50km'),
-      ('100', 'Within 100km'),
-      ('300', "Island Wide")
-    ], validators=[InputRequired()])
 
     wants_children = SelectField('Do You Want Children?', choices=[
         ('', 'Select an option'),
@@ -159,7 +153,17 @@ class ProfileForm(FlaskForm): # Used when a user wants to edit their profile inf
       ('', 'Select type'),
       ('Casual',  'Casual'),
       ('Serious', 'Serious')
-    ], validators=[InputRequired()])
+    ])
+
+    relationship_status = SelectField('Relationship Status', choices=[
+        ('', 'Select status'),
+        ('Single',            'Single'),
+        ('Open Relationship', 'Open Relationship'),
+        ('Married',           'Married')
+    ])
+
+    education = StringField('Education')
+    job = StringField('Job')
 
     picture = FileField('Profile Picture', validators=[ FileAllowed(['jpg', 'jpeg', 'png'], 'Images only')])
 

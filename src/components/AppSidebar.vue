@@ -2,7 +2,6 @@
 
   import { useAuthStore } from '../stores/auth';
   const authStore = useAuthStore();
-  let first_name = authStore.firstName;
   
   
   function getInitials(){
@@ -10,6 +9,11 @@
     return '?'
   }
   return  authStore.firstName[0] + authStore.lastName[0]
+
+}
+
+function getFirstName(){
+  return authStore.firstName
 
 }
 
@@ -22,7 +26,7 @@
     <div class="user"><!--Add a V-IF-->
       <div class="user_icon">{{ getInitials() }}</div>
        <!--<img src="/images/profile.jpg" alt="pic">-->
-      <div class="name">Hi {{ first_name }}!</div>
+      <div class="name">Hi {{ getFirstName() }}!</div>
      
     </div>
    
@@ -33,9 +37,9 @@
         <li>
           <RouterLink to="/home" class=""><i class="fa-solid fa-house"></i>Home</RouterLink>
         </li>
-        <li>
+        <!--<li>
           <RouterLink to="/matches" class=""><i class="fa-solid fa-heart"></i>Matches</RouterLink>
-        </li>
+        </li>-->
         <li>
           <RouterLink to="/bookmarks" class=""><i class="fa-solid fa-bookmark"></i>Bookmarks</RouterLink>
         </li>

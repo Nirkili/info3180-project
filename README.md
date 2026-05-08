@@ -59,36 +59,41 @@ get_my_profile() - This endpoint accepts no parameters. It uses the `GET` method
 
 update_profile() – This endpoint accepts no parameters. It uses the `PUT` method and updates the current user’s profile information using data from a submitted form. If the form is successfully validated and the profile exists, a message "Profile update successful" is returned with status code 200. If the profile does not exist, a 404 error with the message "Profile not found" is returned. If the form fails validation, all error messages related to the form are returned with status code 400.
 
-7. ROUTE - `/api/v1/profile/<int:profile_id>`
+
+7. ROUTE - `/api/v1/profile/me`
+
+get_my_profile() – Uses the `GET` method and accepts no parameters. The purpose of this function is to retun the profile of the current user. If the profile exists, all profile details are returned along with status code 200. If no profile is found, an error message "Profile not found" is returned with status code 404.
+
+8. ROUTE - `/api/v1/profile/<int:profile_id>`
 
 get_profile(profile_id) – Uses the `GET` method and accepts a profile ID as a parameter. If the profile exists, all profile details are returned along with status code 200. If no profile is found, an error message "Profile not found" is returned with status code 404.
 
-8. ROUTE - `/api/v1/user/search`
+9. ROUTE - `/api/v1/user/search`
 
 searchUsers() – Uses the `GET` method and allows users to search for other public users based on a search term and optional filters such as age range, gender, location, and interests. This information can also be managed through sorts by a user's age and date of account creation. Upon searching, a list of matching users with their account details like a user's profileID, username, name, gender, age, location, bio and photo is returned along with status code 200.
 
-9. ROUTE - `/api/v1/user/bookmarks`
+10. ROUTE - `/api/v1/user/bookmarks`
 
 getBookmarkedUsers() – Uses the `GET` method and retrieves all profiles bookmarked by the currently logged-in user. A list of bookmarked users with information such as the user's profileID, username, name, gender, age, location, bio and photo is returned along with status code 200.
 
-10. ROUTE - `/api/v1/user/bookmarks/<int:profile_ID>`
-
-deleteBookmarkedUser(profile_ID) – Uses the `DELETE` and accepts the the profile ID of the user to be deleted as a parameter. If successful, a message "Bookmark deleted successfully" is returned with status code 200. If the bookmark does not exist, an appropriate error message is returned with status code 404.
-
 11. ROUTE - `/api/v1/user/bookmarks/<int:profile_ID>`
 
-addBookmarkedUser(profile_ID) – Uses the `POST` method and accepts the profile ID of the user to be bookmarked as a parameter. If the bookmark is successfully created, a message "Bookmark added successfully" is sent and returned with status code 201. If the profile is already bookmarked, a message "Bookmark already exists" is returned with status code 400.
+deleteBookmarkedUser(profile_ID) – Uses the `DELETE` and accepts the the profile ID of the user to be deleted as a parameter. If successful, a message "Bookmark deleted successfully" is returned with status code 200 and removed is set to True. If the bookmark does not exist, an appropriate error message is returned with status code 404 and removed is set to false.
 
-12. ROUTE - `/api/v1/matches`
+12. ROUTE - `/api/v1/user/bookmarks/<int:profile_ID>`
+
+addBookmarkedUser(profile_ID) – Uses the `POST` method and accepts the profile ID of the user to be bookmarked as a parameter. If the bookmark is successfully created, a message "Bookmark added successfully" is sent and returned with status code 201 and added is set to True. If the profile is already bookmarked, a message "Bookmark already exists" is returned with status code 400 and added is set to False.
+
+13. ROUTE - `/api/v1/home`
 
 matching_algorithm() – This endpoint accepts no parameters. It uses the `GET` method and generates a list of potential matches for the current user based on their profile and interests. It returns a list of user and profile details for each user, compatibility score and percentage in descending order of score and returned with status code 200.
 
 
-13. ROUTE - `/api/v1/profile/interest`
+14. ROUTE - `/api/v1/profile/interest`
 
-interest() – Uses the `POST` method and allows the current user to add their interests. The selected interests are stored in the database. Upon successful completion, a confirmation message is returned with status code 201.
+set_interests() – Uses the `POST` method and allows the current user to set their interests. The selected interests are stored in the database. Upon successful completion, a confirmation message "Interests saved." is returned with status code 200.
 
-14. ROUTE - `/api/v1/csrf-token`
+15. ROUTE - `/api/v1/csrf-token`
 
 get_csrf() – Uses the `GET` method and generates and returns a CSRF token required for secure form submissions. The token is returned along with status code 200 if generated successfully.
 
@@ -111,7 +116,11 @@ get_chat_history(chat_ID) - Accepts chatID of chat to get messages for. Function
 
 20. ROUTE - `/api/v1/chats`
 
-get_chats()- This endpoint accepts no parameters. Gets all chats for the current user and returns the chat list along with status code 200.
+get_chats() - This endpoint accepts no parameters. Gets all chats for the current user and returns the chat list along with status code 200.
+
+21. ROUTE - `/api/v1/interests`
+
+get_interests() - This endpoint accepts no parameters. Gets all interests for the user to select from during registration. 
 
 --------------------------------------
 ### Helper Functions
@@ -130,8 +139,14 @@ page_not_found(error) - Takes an error and renders the 404 template if the page 
 
 ## Limitations
 
-Accuracy of Matching Algorithm - The algorithm is only as accurate as the data provided by the user. IT does not facilitate deep learning but an analysis of information entered by the user at the time. Due to this, the matching algorithm may not be able to capture all profiles the user is interested in.
+Accuracy of Matching Algorithm - The algorithm is only as accurate as the data provided by the user. It does not facilitate deep learning but an analysis of information entered by the user at the time. Due to this, the matching algorithm may not be able to capture all profiles the user is actually interested in.
 
-Responsiveness of App to Different Screens - Due to the time constraint, the performance of the app with regards to mobbile of television view is unknown and is known to work with standard laptop screens.
+Responsiveness of App to Different Screens - Due to the time constraint, the performance of the app with regards to mobbile or television view is unknown and is known to work with standard laptop screens.
 
 Offline Access - DriftDater has been built as an online web application and so features are not guaranteed to work with the absence of a network connection.
+
+Matching System - Once a user matches with another user, they cannot be unmatched. Furthermore, once a chat is started, it cannot be deleted.
+
+Edit Profile - Edit profile currently has not been implemented.
+
+
