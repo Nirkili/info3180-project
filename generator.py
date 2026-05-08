@@ -83,6 +83,7 @@ def gen_users_profiles():
                         wants_children=random.choice(["Wants Children", "Does Not Want Children"]),
                         age_preference=random.choice(['18-24', '25-29', '30-40', '>40']),                        
                         relationship_type_preference=random.choice(["Casual","Serious"]),
+                        relationship_status = random.choice(["Open Relationship", "Single", "Married"]),
                         radius_preference=random.choice(['25', '50', '100', '250'])
                     )
                     db.session.add(new_profile)
