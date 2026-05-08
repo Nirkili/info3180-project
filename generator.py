@@ -147,7 +147,7 @@ def write_to_file(credentials, filename):
         with app.app_context():
             f.write("Generated User Credentials:\n")
             for i in credentials:
-                f.write(i)
+                f.write(f"{i}\n")
                 
 
 if __name__ == "__main__":

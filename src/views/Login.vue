@@ -3,6 +3,8 @@ import {ref, onMounted} from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from '../stores/auth';
 
+
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -101,8 +103,34 @@ function login(){
         </form>
     </div>
 
-    <div class="image-display">
-      <img src="/images/login_image.jpeg">
+  <!--Taken from Bootstrap with the help of W3Schools-->
+  <!--https://getbootstrap.com/docs/4.0/components/carousel/-->
+  <!--https://www.w3schools.com/bootstrap/bootstrap_carousel.asp-->
+
+  <div id="carousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
+
+    <!-- Wrapper for slides -->
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <img src="/images/login_image.jpeg" class="d-block w-100" alt="Slide 1">
+      </div>
+      <div class="carousel-item">
+        <img src="/images/couplepic.jpg" class="d-block w-100" alt="Slide 2">
+      </div>
+      <div class="carousel-item">
+        <img src="/images/profile.jpg" class="d-block w-100" alt="Slide 3">
+      </div>
+    </div>
+
+    <!-- Left and right controls -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#carousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#carousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
     </div>
 
   </div>
@@ -185,16 +213,18 @@ a {
 
 
 /*-----Image Design-----*/
-.image-display {
+#carousel{
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 50%;
+  overflow: hidden;
+  height: 450px;
+  padding-left: 40px;
+  border-radius: 20px;
 }
 
-.image-display img {
-  width: 70%;
-  height: 70%;
+.carousel-item img {
+  width: 50%;
+  height: 450px;
   object-fit: cover;
   border-radius: 20px;
 

@@ -87,52 +87,6 @@ onMounted(() => {
   loadMatches()
 })
 
-function getCsrfToken() {
-    return fetch('/api/v1/csrf-token')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data)
-        csrf_token.value = data.csrf_token
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-
-    }
-
-function loadMatches(){
-
-  fetch('/api/v1/matches',{
-    method:'GET',
-    headers: {'X-CSRFToken': csrf_token.value,}
-  })
-
-  .then(function(response){
-    console.log("Status", response);
-    if(!response.ok){
-      throw new Error(`Server Error: ${response.status}`)
-    }
-
-    return response.json()
-  })
-
-  .then(function(data){
-    matchList.value = data
-    console.log(matchList)
-    
-  })
-
-  .catch(function(error){
-    errorMessage.value = error.message;
-
-})
-
-}
-
-onMounted(() => {
-  getCsrfToken()
-  loadMatches()
-})
 
 </script>
 

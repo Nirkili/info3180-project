@@ -32,6 +32,10 @@ Tara-Lee Donald - QA/Testing Lead
 http://localhost:5173)
 8. Run generator file to generate fake users for the app if needed.
 
+## ARCHITECTURE DIAGRAM
+
+![Architecture Diagram](image.png)
+
 ## API DOCUMENTATION:
 
 

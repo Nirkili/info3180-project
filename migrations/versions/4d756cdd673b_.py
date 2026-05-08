@@ -1,14 +1,8 @@
 """empty message
 
-<<<<<<<< HEAD:migrations/versions/e184aa80c14b_.py
-Revision ID: e184aa80c14b
+Revision ID: 4d756cdd673b
 Revises: 
-Create Date: 2026-04-27 12:49:45.203207
-========
-Revision ID: 1f99f8933bc9
-Revises: 
-Create Date: 2026-05-04 18:39:19.974487
->>>>>>>> main:migrations/versions/1f99f8933bc9_.py
+Create Date: 2026-05-05 12:30:48.803554
 
 """
 from alembic import op
@@ -16,11 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-<<<<<<<< HEAD:migrations/versions/e184aa80c14b_.py
-revision = 'e184aa80c14b'
-========
-revision = '1f99f8933bc9'
->>>>>>>> main:migrations/versions/1f99f8933bc9_.py
+revision = '4d756cdd673b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -78,28 +68,16 @@ def upgrade():
     sa.Column('profile_ID', sa.Integer(), nullable=False),
     sa.Column('user_ID', sa.Integer(), nullable=False),
     sa.Column('date_of_birth', sa.Date(), nullable=False),
-<<<<<<<< HEAD:migrations/versions/e184aa80c14b_.py
-    sa.Column('gender', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender'), nullable=False),
-========
     sa.Column('gender', sa.Enum('Female', 'Male', 'Non-binary', name='gender'), nullable=False),
->>>>>>>> main:migrations/versions/1f99f8933bc9_.py
     sa.Column('bio', sa.Text(), nullable=True),
     sa.Column('location', sa.String(length=100), nullable=False),
     sa.Column('visibility_status', sa.Enum('Private', 'Public', name='account_status'), nullable=False),
     sa.Column('picture_filename', sa.String(length=100), nullable=False),
-<<<<<<<< HEAD:migrations/versions/e184aa80c14b_.py
-    sa.Column('gender_preference', postgresql.ENUM('FEM', 'MALE', 'NB', name='gender_preference'), nullable=False),
-    sa.Column('wants_children', postgresql.ENUM('DOES_WANT', 'DOES_NOT', name='children_preference'), nullable=False),
-    sa.Column('relationship_type_preference', postgresql.ENUM('CASUAL', 'SERIOUS', name='relationship_preference'), nullable=False),
-    sa.Column('age_preference', postgresql.ENUM('Young_Adult', 'Adult', 'MiddleAged', 'Old', name='age_preference'), nullable=False),
-    sa.Column('radius_preference', sa.Enum('25', '50', '100', '300', name='location_preference'), nullable=False),
-========
     sa.Column('gender_preference', sa.Enum('Female', 'Male', 'Non-binary', name='gender_preference'), nullable=False),
     sa.Column('wants_children', sa.Enum('Wants Children', 'Does Not Want Children', name='children_preference'), nullable=False),
     sa.Column('relationship_type_preference', sa.Enum('Casual', 'Serious', name='relationship_preference'), nullable=False),
     sa.Column('age_preference', sa.Enum('18-24', '25-29', '30-40', '>40', name='age_preference'), nullable=False),
     sa.Column('radius_preference', sa.Enum('25', '50', '100', '250', name='location_preference'), nullable=False),
->>>>>>>> main:migrations/versions/1f99f8933bc9_.py
     sa.ForeignKeyConstraint(['user_ID'], ['User.user_ID'], ),
     sa.PrimaryKeyConstraint('profile_ID')
     )

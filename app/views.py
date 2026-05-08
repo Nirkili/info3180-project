@@ -551,7 +551,7 @@ def get_matches():
         } for user_obj, profile_obj in profiles]), 200
     
     else:
-         return jsonify({'message': 'No Matches'}), 404
+         return jsonify({'message': 'No Matches'}), 200
 
 
 

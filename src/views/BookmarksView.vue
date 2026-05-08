@@ -147,6 +147,7 @@
     padding: 20px;
     border-radius: 10px;
     z-index: 9999;
+    opacity: .95;
 }
 
   .bookmark{

@@ -134,7 +134,7 @@
     </div>
     <div id = "searchContainer">
         <!--Search Bar and all filters that can be used to search for a user.-->
-        <form method = "GET" action = "{{url_for('search_course')}}" @submit.prevent="searchUsers">
+        <form method = "POST" @submit.prevent="searchUsers">
             <!--Search Bar-->
             <div class="input-group mb-4 search-users">
                 <div class="input-group mb-4">
