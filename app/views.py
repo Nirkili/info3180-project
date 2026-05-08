@@ -358,6 +358,7 @@ def search_users():
     return jsonify([{
         "profile_ID": prof.profile_ID,
         "bio": prof.bio,
+        "user_ID": use.user_ID,
         "username": use.user_name,
         "f_name": use.first_name,
         "l_name": use.last_name,
@@ -382,6 +383,7 @@ def get_bookmarked_users():
     return jsonify([{
         "profile_ID": p.profile_ID,
         "bio": p.bio,
+        "user_ID": u.user_ID,
         "username": u.user_name,
         "f_name": u.first_name,
         "l_name": u.last_name,
