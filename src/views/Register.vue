@@ -141,6 +141,7 @@ function register() {
       errorMessages.value = [
         { field: "error", message: error.message } // Displays error message if one occurs
       ]
+      console.log(error)
     })
 }
 </script>

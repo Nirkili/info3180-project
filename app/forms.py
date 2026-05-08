@@ -95,7 +95,12 @@ class LoginForm(FlaskForm):
 
 class ProfileForm(FlaskForm): # Used when a user wants to edit their profile information
     bio      = TextAreaField('About Me')
-
+    gender = SelectField('Gender', choices=[
+    ('', 'Select gender'),
+    ('Female',     'Female'),
+    ('Male',       'Male'),
+    ('Non-binary', 'Non-binary')
+  ], validators=[InputRequired()])
     location = SelectField('Location', choices=[
     ('', 'Select Parish'),
     ('Kingston',        'Kingston'),

@@ -103,9 +103,8 @@ def register():
             'first_name': new_user.first_name,
             'last_name': new_user.last_name
         }), 201
-
+        
     return jsonify({'errors': form_errors(form)}), 400
-
 
 
 @app.route('/api/v1/auth/login', methods = ['POST'])
