@@ -60,10 +60,6 @@ def calc_distance(current_location, other_location):
   curret_coords = COORDINATES.get(current_location)
   other_coords = COORDINATES.get(other_location)
 
-  if curret_coords is None or other_coords is None:
-        print(f"Location not found: '{current_location}' or '{other_location}'")
-        return float('inf')
-
   # Perform calculation
   distance = haversine(curret_coords, other_coords, unit=Unit.KILOMETERS)
   return distance

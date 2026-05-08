@@ -89,6 +89,7 @@ def register():
             picture_filename = 'profile.jpg'
 
         )
+        print(new_profile)
 
         db.session.add(new_profile)
         db.session.commit()
@@ -357,6 +358,7 @@ def search_users():
     
     return jsonify([{
         "profile_ID": prof.profile_ID,
+        "user_ID": use.user_ID,
         "bio": prof.bio,
         "username": use.user_name,
         "f_name": use.first_name,
@@ -381,6 +383,7 @@ def get_bookmarked_users():
 
     return jsonify([{
         "profile_ID": p.profile_ID,
+        "user-ID": u.user_ID,
         "bio": p.bio,
         "username": u.user_name,
         "f_name": u.first_name,

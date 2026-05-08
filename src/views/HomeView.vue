@@ -72,7 +72,7 @@ async function rateUser(userID, type){
 
     .then(function(data){
         console.log('matched:', data.matched)
-        // Remove card fromthe list
+        // Remove card from the list
         matchList.value = matchList.value.filter(m => m.user_ID !== userID)
 
         if(data.matched){

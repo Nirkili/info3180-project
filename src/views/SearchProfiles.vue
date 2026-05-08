@@ -161,18 +161,18 @@
                     <select v-model = "filter3" name = "filter3" class="filtGrp">
                         <option value="none" disabled selected hidden>Location</option>
                         <option value = "Kingston">Kingston</option>
-                        <option value = "St. Andrew">St. Andrew</option>
-                        <option value = "St. Thomas">St. Thomas</option>
+                        <option value = "St.Andrew">St. Andrew</option>
+                        <option value = "St.Thomas">St. Thomas</option>
                         <option value = "Portland">Portland</option>
                         <option value = "Trelawny">Trelawny</option>
                         <option value = "Clarendon">Clarendon</option>
                         <option value = "Manchester">Manchester</option>
-                        <option value = "St. Elizabeth">St. Elizabeth</option>
+                        <option value = "St.Elizabeth">St. Elizabeth</option>
                         <option value = "Westmoreland">Westmoreland</option>
                         <option value = "Hanover">Hanover</option>
-                        <option value = "St. Mary">St. Mary</option>
-                        <option value = "St. Ann">St. Ann</option>
-                        <option value = "St. James">St. James</option>
+                        <option value = "St.Mary">St. Mary</option>
+                        <option value = "St.Ann">St. Ann</option>
+                        <option value = "St.James">St. James</option>
                         
                     </select>
 
@@ -223,7 +223,7 @@
 
     <!--Displays the search results if any users are found. If not, displays a message that no users match the search request.-->
     <div class = "searchRes" v-if ="users.length > 0">
-        <div v-for= "user in users" :key = user.user_ID>
+        <div v-for= "user in users" :key = user.userID>
             <ProfileCard :user = "user">
                 <!--Checks if users is bookmarked or not by the current user and provides appropriate action.-->
                 <a v-if="user.bookmarked"  @click="removebookmark(user.profile_ID)" class="bookmark"><i class="bi bi-bookmark-fill">Remove Bookmark</i></a>
