@@ -81,7 +81,8 @@ def gen_users_profiles():
                         picture_filename="default.jpg",
                         gender_preference= random.choice(gender_options),
                         wants_children=random.choice(["Wants Children", "Does Not Want Children"]),
-                        age_preference=random.choice(['18-24', '25-29', '30-40', '>40']),                        
+                        age_preference=random.choice(['18-24', '25-29', '30-40', '>40']),  
+                        relationship_status = random.choice(["Open Relationship", "Single", "Married"]),                      
                         relationship_type_preference=random.choice(["Casual","Serious"]),
                         radius_preference=random.choice(['25', '50', '100', '250'])
                     )
