@@ -336,7 +336,7 @@ def search_users():
         current = current.filter(Profile.location == filt3)
         
     if filt4 and filt4 != "none":
-        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.name == filt4).distinct()
+        current = current.join(UserInterest, UserInterest.user_ID == Profile.user_ID).join(Interest, UserInterest.interest_ID == Interest.interest_ID).filter(Interest.interest_name == filt4).distinct()
     
     #Determines the sorting order of the users searched for.
     sort_order = []

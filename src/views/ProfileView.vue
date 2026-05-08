@@ -337,7 +337,7 @@ watch(
         </div>
 
         <div v-else>
-          <p>No matches?. Let's find some love!</p>
+          <p>No matches? Let's find some love!</p>
         </div>
 
       </div>
